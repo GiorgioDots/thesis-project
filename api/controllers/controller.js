@@ -7,10 +7,6 @@ const mongoose = require('mongoose'),
 
 const BOT = new Telegraf(process.env.BOT_TOKEN);
 const AZURE_FACE_KEY = process.env.AZURE_FACE_KEY;
-const AZURE_FACE_ENDPOINT = process.env.AZURE_FACE_ENDPOINT;
-
-//mia chat telegram "505457149";
-//mio _id: 5d829d3751a5222f9c7a7215
 
 exports.healthcheck = (req, res) => {
     res.send({
