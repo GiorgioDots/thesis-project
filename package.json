@@ -1,32 +1,30 @@
 {
-  "name": "proj-tesina-backend",
+  "name": "backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nodemon server.js",
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://GiorgioDots@bitbucket.org/GiorgioDots/proj-tesina-backend.git"
+    "url": "git+https://GiorgioDots@bitbucket.org/unusualpersonalwork/backend.git"
   },
-  "author": "Dodesini Giorgio",
+  "keywords": [],
+  "author": "",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/GiorgioDots/proj-tesina-backend#readme",
+  "homepage": "https://bitbucket.org/unusualpersonalwork/backend#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
-    "cors": "^2.8.5",
-    "dotenv": "^8.1.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "express-fileupload": "^1.1.5",
-    "mongodb": "^3.3.2",
-    "mongoose": "^5.7.7",
-    "morgan": "^1.9.1",
-    "nodemon": "^1.19.2",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.7",
-    "telegraf": "^3.32.0"
+    "express-validator": "^6.3.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.7.14"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^2.0.1"
+  }
 }

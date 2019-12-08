@@ -1,7 +1,2 @@
-#node
 node_modules/
-
-
-#other
-project-description
 .env
