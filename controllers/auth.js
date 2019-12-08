@@ -30,7 +30,14 @@ exports.signup = (req, res, next) => {
             return user.save();
         })
         .then(result => {
-            res.status(201).json({ message: 'Success!', userId: result._id });
+            const token = jwt.sign(
+                {
+                    email: result.email,
+                    userId: result._id.toString()
+                },
+                'supersecret'
+            );
+            res.status(201).json({ message: 'Success!', userId: result._id, token: token });
         })
         .catch(err => {
             if (!err.statusCode) {
