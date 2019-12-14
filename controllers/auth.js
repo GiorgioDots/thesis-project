@@ -1,8 +1,18 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
+const AWS = require('aws-sdk');
+const uuid = require('uuid');
 const User = require('../models/user');
+
+const AWS_ID = process.env.AWS_ID;
+const AWS_SECRET = process.env.SECRET;
+const AWS_REGION = process.env.AWS_REGION;
+const rekognition = new AWS.Rekognition({
+    accessKeyId: AWS_ID,
+    secretAccessKey: AWS_SECRET,
+    region: AWS_REGION
+});
 
 exports.signup = (req, res, next) => {
     const errors = validationResult(req);
@@ -17,34 +27,42 @@ exports.signup = (req, res, next) => {
     const password = req.body.password;
     const telegramId = req.body.telegramId;
     const raspiId = req.body.raspiId;
-    bcrypt
-        .hash(password, 12)
-        .then(hashedPw => {
-            const user = new User({
-                email: email,
-                password: hashedPw,
-                name: name,
-                telegramId: telegramId,
-                raspiId: raspiId
-            });
-            return user.save();
-        })
-        .then(result => {
-            const token = jwt.sign(
-                {
-                    email: result.email,
-                    userId: result._id.toString()
-                },
-                'supersecret'
-            );
-            res.status(201).json({ message: 'Success!', userId: result._id, token: token });
+    createCollectionSync()
+        .then(collectionId => {
+            bcrypt
+                .hash(password, 12)
+                .then(hashedPw => {
+                    const user = new User({
+                        email: email,
+                        password: hashedPw,
+                        name: name,
+                        telegramId: telegramId,
+                        raspiId: raspiId,
+                        collectionId: collectionId
+                    });
+                    return user.save();
+                })
+                .then(result => {
+                    const token = jwt.sign(
+                        {
+                            email: result.email,
+                            userId: result._id.toString()
+                        },
+                        'supersecret'
+                    );
+                    res.status(201).json({ message: 'Success!', user: result, token: token });
+                })
+                .catch(err => {
+                    throw err;
+                });
         })
         .catch(err => {
             if (!err.statusCode) {
                 err.statusCode = 500;
             }
             next(err);
-        });
+        })
+
 };
 
 exports.login = (req, res, next) => {
@@ -74,7 +92,7 @@ exports.login = (req, res, next) => {
                 },
                 'supersecret'
             );
-            res.status(200).json({ token: token, userId: loadedUser._id.toString() });
+            res.status(200).json({ token: token, user: loadedUser });
         })
         .catch(err => {
             if (!err.statusCode) {
@@ -83,7 +101,20 @@ exports.login = (req, res, next) => {
             next(err);
         });
 };
-
+var createCollectionSync = () => {
+    const collectionId = uuid();
+    const params = {
+        CollectionId: collectionId
+    };
+    return new Promise((resolve, reject) => {
+        rekognition.createCollection(params, (err, data) => {
+            if (err) {
+                reject(err);
+            }
+            resolve(collectionId);
+        });
+    });
+}
 // MODIFY USER INFORMATIONS
 // exports.getUserStatus = (req, res, next) => {
 //     User.findById(req.userId)

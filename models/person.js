@@ -19,6 +19,14 @@ const personSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'User',
             required: true
+        },
+        faceId: {
+            type: String,
+            required: true
+        },
+        imageName: {
+            type: String,
+            required: true
         }
     }
 );

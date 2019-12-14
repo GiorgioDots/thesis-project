@@ -11,7 +11,7 @@ const userSchema = new Schema({
         required: true
     },
     raspiId: {
-        type: Array,
+        type: String,
         required: true
     },
     email: {
@@ -24,7 +24,22 @@ const userSchema = new Schema({
             ref: 'Person'
         }
     ],
+    events: [
+        {
+            person: {
+                type: Schema.Types.ObjectId,
+                ref: 'Person'
+            },
+            event: {
+                type: String
+            }
+        }
+    ],
     password: {
+        type: String,
+        required: true
+    },
+    collectionId: {
         type: String,
         required: true
     }
