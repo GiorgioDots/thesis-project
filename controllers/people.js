@@ -19,20 +19,17 @@ const rekognition = new AWS.Rekognition({
 })
 
 exports.getPeople = (req, res, next) => {
-    const currentPage = req.query.page || 1;
-    const perPage = 12;
     let totalItems;
-    if (!req.body.userId) {
+    const userId = req.userId
+    if (!userId) {
         next(Error("UserId undefined"));
     }
     Person
-        .find({ "user": req.body.userId })
+        .find({ "user": userId })
         .countDocuments()
         .then(count => {
             totalItems = count;
-            return Person.find({ "user": req.body.userId })
-                .skip((currentPage - 1) * perPage)
-                .limit(perPage);
+            return Person.find({ "user": userId })
         })
         .then(people => {
             res.status(200).json({
@@ -117,7 +114,7 @@ exports.createPerson = (req, res, next) => {
 
 exports.getPerson = (req, res, next) => {
     const personId = req.params.personId;
-    const userId = req.body.userId;
+    const userId = req.params.userId;
     Person.find({ $and: [{ user: userId }, { _id: personId }] })
         .then(person => {
             if (person.length == 0) {
@@ -210,7 +207,7 @@ exports.updatePerson = (req, res, next) => {
 
 exports.deletePerson = (req, res, next) => {
     const personId = req.params.personId;
-    const userId = req.body.userId;
+    const userId = req.query.userId;
     let faceId;
     let collectionId;
     Person.find({ $and: [{ user: userId }, { _id: personId }] })
@@ -327,7 +324,7 @@ var addFaceInCollectionSync = (collectionId, fileId) => {
                 reject(error);
             }
             if (data.FaceRecords.length > 1) {
-                reject(new Error('Please, only one person'));
+                reject(new Error('Please, only one person per photo!'));
             }
             resolve(data.FaceRecords[0].Face.FaceId);
         });
