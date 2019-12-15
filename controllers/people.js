@@ -57,6 +57,8 @@ exports.createPerson = (req, res, next) => {
     let name = req.query.name;
     let degree = req.query.degree;
     let userId = req.query.userId;
+    let doCount = req.query.doCount;
+    let doNotify = req.query.doNotify;
     let imageUrl;
     let person;
     let fileUrl;
@@ -87,7 +89,9 @@ exports.createPerson = (req, res, next) => {
                 imageUrl: imageUrl,
                 user: userId,
                 imageName: fileId,
-                faceId: faceId
+                faceId: faceId,
+                doCount: doCount,
+                doNotify: doNotify,
             });
             return person;
         })
@@ -140,6 +144,8 @@ exports.updatePerson = (req, res, next) => {
     const name = req.query.name;
     const degree = req.query.degree;
     const userId = req.query.userId;
+    const doCount = req.query.doCount;
+    const doNotify = req.query.doNotify;
     Person.find({ $and: [{ user: userId }, { _id: personId }] })
         .then(result => {
             if (result.length == 0) {
@@ -147,11 +153,12 @@ exports.updatePerson = (req, res, next) => {
             }
             const person = result[0]
 
-            if (name) {
-                person.name = name;
-            }
-            if (degree) {
-                person.degree = degree;
+            person.name = name;
+            person.degree = degree;
+            person.doCount = doCount;
+            person.doNotify = doNotify;
+            if (req.query.counter) {
+                person.counter = req.query.counter;
             }
             if (req.files) {
                 const file = req.files.image;

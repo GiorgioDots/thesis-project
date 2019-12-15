@@ -26,12 +26,9 @@ const userSchema = new Schema({
     ],
     events: [
         {
-            person: {
-                type: Schema.Types.ObjectId,
-                ref: 'Person'
-            },
             event: {
-                type: String
+                type: Schema.Types.ObjectId,
+                ref: 'Event'
             }
         }
     ],

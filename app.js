@@ -6,6 +6,7 @@ const fileUpload = require('express-fileupload');
 
 const authRoutes = require('./routes/auth');
 const peopleRoutes = require('./routes/people');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoutes);
 app.use('/people', peopleRoutes);
+app.use('/user', userRoutes);
 app.get('/', (req, res, next) => { res.status(200).json({ status: "ok" }); next() })
 
 app.use((error, req, res, next) => {

@@ -27,6 +27,18 @@ const personSchema = new Schema(
         imageName: {
             type: String,
             required: true
+        },
+        doCount: {
+            type: Boolean,
+            required: true
+        },
+        counter: {
+            type: Number,
+            default: 0
+        },
+        doNotify: {
+            type: Boolean,
+            required: true
         }
     }
 );
