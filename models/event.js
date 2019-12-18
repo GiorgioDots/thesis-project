@@ -8,12 +8,25 @@ const eventSchema = new Schema(
             ref: 'Person',
             required: true
         },
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
         description: {
+            type: String,
+            required: true
+        },
+        imageName: {
             type: String,
             required: true
         },
         date: {
             type: Date,
+            required: true
+        },
+        imageUrl: {
+            type: String,
             required: true
         }
     }

@@ -7,6 +7,8 @@ const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
 const peopleRoutes = require('./routes/people');
 const userRoutes = require('./routes/user');
+const eventsRoutes = require('./routes/events');
+const bot = require('./utils/telegram-bot');
 
 const app = express();
 
@@ -25,7 +27,13 @@ app.use((req, res, next) => {
 app.use('/auth', authRoutes);
 app.use('/people', peopleRoutes);
 app.use('/user', userRoutes);
-app.get('/', (req, res, next) => { res.status(200).json({ status: "ok" }); next() })
+app.use('/events', eventsRoutes);
+app.get('/healthcheck', (req, res, next) => { res.status(200).json({ status: "ok" }); next() })
+app.post('/' + bot.token, (req, res) => {
+    console.log(req);
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
 
 app.use((error, req, res, next) => {
     console.log(error);
@@ -38,6 +46,7 @@ app.use((error, req, res, next) => {
 mongoose
     .connect(process.env.MONGO_SRV, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(result => {
-        app.listen(8080);
+        app.listen(process.env.PORT || 8080);
     })
     .catch(err => console.log(err));
+
