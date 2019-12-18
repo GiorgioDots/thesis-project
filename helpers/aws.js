@@ -2,18 +2,24 @@ const AWS = require('aws-sdk');
 const AWS_ID = process.env.AWS_ID;
 const AWS_SECRET = process.env.SECRET;
 
-
-const s3 = new AWS.S3({
+const s3Options = {
     accessKeyId: AWS_ID,
     secretAccessKey: AWS_SECRET
-});
-const rekognition = new AWS.Rekognition({
+};
+
+const rekognitionOptions = {
     accessKeyId: AWS_ID,
     secretAccessKey: AWS_SECRET,
     region: process.env.AWS_REGION
-})
+};
+
+const s3 = new AWS.S3(s3Options);
+
+const rekognition = new AWS.Rekognition(rekognitionOptions);
 
 module.exports.s3UploadFileSync = (file, fileId, bkt_name) => {
+    console.log(s3Options);
+    console.log(rekognitionOptions);
     const s3Params = {
         Bucket: bkt_name,
         Key: fileId,
