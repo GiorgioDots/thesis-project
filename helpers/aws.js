@@ -2,11 +2,7 @@ const AWS = require('aws-sdk');
 const AWS_ID = process.env.AWS_ID;
 const AWS_SECRET = process.env.AWS_SECRET;
 
-AWS.config.region = 'eu-central-1'; // Regione
-AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: 'eu-central-1:5e8b43ea-f1c4-4470-a870-1670c9d9359e',
-});
-
+AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: 'default' });
 const s3 = new AWS.S3();
 
 const rekognition = new AWS.Rekognition();
