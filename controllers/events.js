@@ -1,12 +1,12 @@
 const uuid = require('uuid');
 const fs = require('fs');
-const { sendEvent } = require('../_helpers/telegram');
+const { sendEvent } = require('../helpers/telegram');
 const User = require('../models/user');
 const Event = require('../models/event');
 const Person = require('../models/person');
 
-const { s3UploadFileSync, searchFacesByImage, s3DeleteFileSync } = require('../_helpers/aws');
-const { saveFileSync } = require('../_helpers/FS');
+const { s3UploadFileSync, searchFacesByImage, s3DeleteFileSync } = require('../helpers/aws');
+const { saveFileSync } = require('../helpers/fs');
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME
 
 module.exports.createEvent = (req, res, next) => {
