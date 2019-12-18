@@ -2,6 +2,11 @@ const AWS = require('aws-sdk');
 const AWS_ID = process.env.AWS_ID;
 const AWS_SECRET = process.env.AWS_SECRET;
 
+AWS.config.region = 'eu-central-1';
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: 'eu-central-1:5e8b43ea-f1c4-4470-a870-1670c9d9359e',
+});
+
 const s3Options = {
     accessKeyId: AWS_ID,
     secretAccessKey: AWS_SECRET
@@ -9,8 +14,7 @@ const s3Options = {
 
 const rekognitionOptions = {
     accessKeyId: AWS_ID,
-    secretAccessKey: AWS_SECRET,
-    region: process.env.AWS_REGION
+    secretAccessKey: AWS_SECRET
 };
 
 const s3 = new AWS.S3(s3Options);
