@@ -1,22 +1,14 @@
 const { validationResult } = require('express-validator');
-const fs = require('fs');
-const AWS = require('aws-sdk');
 const uuid = require('uuid');
 const Person = require('../models/person');
 const User = require('../models/user');
-const AWS_ID = process.env.AWS_ID;
-const AWS_SECRET = process.env.SECRET;
+const Event = require('../models/event');
+const { s3DeleteFileSync, s3UploadFileSync, addFaceInCollectionSync, deleteFaceFromCollectionSync } = require('../_helpers/aws');
+const { saveFileSync } = require('../_helpers/fs');
+const fs = require('fs');
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
+const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
-const s3 = new AWS.S3({
-    accessKeyId: AWS_ID,
-    secretAccessKey: AWS_SECRET
-});
-const rekognition = new AWS.Rekognition({
-    accessKeyId: AWS_ID,
-    secretAccessKey: AWS_SECRET,
-    region: process.env.AWS_REGION
-})
 
 exports.getPeople = (req, res, next) => {
     let totalItems;
@@ -67,7 +59,7 @@ exports.createPerson = (req, res, next) => {
     const fileName = `./tmp/${fileId}`;
     saveFileSync(file, fileName)
         .then(fileName => {
-            return s3UploadFileSync(fs.readFileSync(fileName), fileId);
+            return s3UploadFileSync(fs.readFileSync(fileName), fileId, AWS_PEOPLE_BKTNAME);
         })
         .then(url => {
             fs.unlinkSync(fileName);
@@ -79,7 +71,7 @@ exports.createPerson = (req, res, next) => {
         })
         .then(userResult => {
             user = userResult;
-            return addFaceInCollectionSync(user.collectionId, fileId);
+            return addFaceInCollectionSync(user.collectionId, fileId, AWS_PEOPLE_BKTNAME);
         })
         .then(faceId => {
             imageUrl = fileUrl;
@@ -113,7 +105,7 @@ exports.createPerson = (req, res, next) => {
                 error.statusCode = 500;
             }
             next(error);
-        })
+        });
 }
 
 exports.getPerson = (req, res, next) => {
@@ -166,7 +158,7 @@ exports.updatePerson = (req, res, next) => {
                 const fileName = `./tmp/${fileId}`;
                 let imageUrl;
                 let collectionId;
-                return s3DeleteFileSync(person.imageName)
+                return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME)
                     .then(done => {
                         if (!done) {
                             throw new Error("Couldn't delete image");
@@ -174,7 +166,7 @@ exports.updatePerson = (req, res, next) => {
                         return saveFileSync(file, fileName)
                     })
                     .then(fileName => {
-                        return s3UploadFileSync(fs.readFileSync(fileName), fileId);
+                        return s3UploadFileSync(fs.readFileSync(fileName), fileId, AWS_PEOPLE_BKTNAME);
                     })
                     .then(imageUrlRes => {
                         fs.unlinkSync(fileName);
@@ -186,7 +178,7 @@ exports.updatePerson = (req, res, next) => {
                         return deleteFaceFromCollectionSync(collectionId, person.faceId);
                     })
                     .then(result => {
-                        return addFaceInCollectionSync(collectionId, fileId);
+                        return addFaceInCollectionSync(collectionId, fileId, AWS_PEOPLE_BKTNAME);
                     })
                     .then(faceId => {
                         person.imageUrl = imageUrl;
@@ -195,7 +187,7 @@ exports.updatePerson = (req, res, next) => {
                         return person.save()
                     })
                     .catch(error => {
-                        s3DeleteFileSync(fileId);
+                        s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
                         throw error;
                     });
             }
@@ -223,7 +215,7 @@ exports.deletePerson = (req, res, next) => {
                 throw new Error('Coult not find person')
             }
             const person = result[0]
-            return s3DeleteFileSync(person.imageName);
+            return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME);
         })
         .then(done => {
             if (!done) {
@@ -240,11 +232,23 @@ exports.deletePerson = (req, res, next) => {
             user.people.pull(personId);
             return user.save();
         })
-        .then(user => {
+        .then(result => {
+            user = result;
+            console.log(user)
+            console.log("result " + result);
             return deleteFaceFromCollectionSync(collectionId, faceId);
         })
         .then(result => {
-            console.log(result);
+            return Event.find({ person: personId });
+        })
+        .then(result => {
+            for (event of result) {
+                s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
+                user.events.pull(event._id);//events of events?
+            }
+            return user.save();
+        })
+        .then(result => {
             return res.status(200).json({ message: 'Person deleted' });
         })
         .catch(error => {
@@ -253,87 +257,4 @@ exports.deletePerson = (req, res, next) => {
             }
             next(error);
         })
-}
-/***HELPERS***/
-var saveFileSync = (file, fileName) => {
-    return new Promise((resolve, reject) => {
-        file.mv(fileName, (error) => {
-            if (error) {
-                reject(error);
-            }
-            resolve(fileName);
-        });
-    });
-}
-
-var s3DeleteFileSync = (objName) => {
-    const params = {
-        Bucket: AWS_PEOPLE_BKTNAME,
-        Key: objName
-    }
-    return new Promise((resolve, reject) => {
-        s3.deleteObject(params, (err, data) => {
-            if (err) {
-                reject(err);
-            }
-            resolve(data);
-        })
-    })
-}
-
-var s3UploadFileSync = (file, fileId) => {
-    const s3Params = {
-        Bucket: AWS_PEOPLE_BKTNAME,
-        Key: fileId,
-        Body: file,
-        ACL: 'public-read'
-    };
-    return new Promise((resolve, reject) => {
-        s3.upload(s3Params, (err, data) => {
-            if (err) {
-                reject(err)
-            }
-            resolve(data.Location);
-        });
-    });
-}
-
-var deleteFaceFromCollectionSync = (collectionId, faceId) => {
-    const params = {
-        CollectionId: collectionId,
-        FaceIds: [
-            faceId
-        ]
-    }
-    return new Promise((resolve, reject) => {
-        rekognition.deleteFaces(params, (err, data) => {
-            if (err) {
-                reject(err);
-            }
-            resolve(data);
-        });
-    });
-}
-
-var addFaceInCollectionSync = (collectionId, fileId) => {
-    const params = {
-        CollectionId: collectionId,
-        Image: {
-            S3Object: {
-                Bucket: AWS_PEOPLE_BKTNAME,
-                Name: fileId
-            }
-        }
-    };
-    return new Promise((resolve, reject) => {
-        rekognition.indexFaces(params, (error, data) => {
-            if (error) {
-                reject(error);
-            }
-            if (data.FaceRecords.length > 1) {
-                reject(new Error('Please, only one person per photo!'));
-            }
-            resolve(data.FaceRecords[0].Face.FaceId);
-        });
-    });
 }
