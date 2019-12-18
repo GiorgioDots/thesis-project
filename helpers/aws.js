@@ -1,8 +1,5 @@
 const AWS = require('aws-sdk');
-const AWS_ID = process.env.AWS_ID;
-const AWS_SECRET = process.env.AWS_SECRET;
 
-AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: 'default' });
 const s3 = new AWS.S3();
 
 const rekognition = new AWS.Rekognition();
