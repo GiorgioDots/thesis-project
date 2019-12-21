@@ -2,11 +2,11 @@
 
 - [Schemes](#Schemes)
   
-  1. [User Schema](#Default-user-schema);
+  1. [User Schema](#Default-user-schema)
 
-  2. [Person Schema](#Default-person-schema);
+  2. [Person Schema](#Default-person-schema)
 
-  3. [Event Schema](#Default-event-schema);
+  3. [Event Schema](#Default-event-schema)
 
 - [Authentication](#Authentication)
   1. [Login](#Login);
