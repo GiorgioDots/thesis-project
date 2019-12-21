@@ -2,32 +2,32 @@
 
 - [Schemes](#Schemes)
   
-  1. [User Schema](##Default-user-schema);
+  1. [User Schema](#Default-user-schema);
 
-  2. [Person Schema](##Default-person-schema);
+  2. [Person Schema](#Default-person-schema);
 
-  3. [Event Schema](##Default-event-schema);
+  3. [Event Schema](#Default-event-schema);
 
 - [Authentication](#Authentication)
-  1. [Login](##Login);
+  1. [Login](#Login);
   
-  2. [Signup](##Signup);
+  2. [Signup](#Signup);
 
 - [People handling](#People-handling)
   
-  1. [Get People](##Get-user's-people)
+  1. [Get People](#Get-user's-people)
 
-  2. [Get Person](##Get-person)
+  2. [Get Person](#Get-person)
 
-  3. [Create Person](##Create-person)
+  3. [Create Person](#Create-person)
 
-  4. [Update Person](##Update-person)
+  4. [Update Person](#Update-person)
 
-  5. [Delete Person](##Delete-person)
+  5. [Delete Person](#Delete-person)
 
 - [Users](#Users)
 
-  1. [Update User](##Update-user)
+  1. [Update User](#Update-user)
 
 - [Events](#Events)
 
@@ -43,7 +43,7 @@
 
 # Schemes
 
-## Default user schema
+# Default user schema
 
 ```
 telegramId: {
@@ -84,7 +84,7 @@ telegramId: {
 }
 ```
 ___
-## Default person schema
+# Default person schema
 
 ```
 {
@@ -128,7 +128,7 @@ ___
 }
 
 ```
-## Default event schema
+# Default event schema
 
 ```
 {
@@ -165,7 +165,7 @@ ___
 
 # Authentication
 
-## Login
+# Login
 
 - URL: `{baseUrl}/auth/login`
 
@@ -180,7 +180,7 @@ ___
 }
 ```
 
-## Signup
+# Signup
 
 - URL: `{baseUrl}/auth/signup`
 
@@ -202,7 +202,7 @@ ___
 
 # People handling
 
-## Get user's people
+# Get user's people
 
 - URL: `{baseUrl}/people/`
 
@@ -220,7 +220,7 @@ ___
 }
 ```
 
-## Get person
+# Get person
 
 - URL: `{baseUrl}/people/:personId`
 
@@ -238,7 +238,7 @@ ___
 }
 ```
 
-## Create person
+# Create person
 
 - URL: `{baseUrl}/people`
 
@@ -264,7 +264,7 @@ ___
 
     - image: `photo of the person`
 
-## Update person
+# Update person
 
 - URL: `{baseUrl}/people/personId`
 
@@ -290,7 +290,7 @@ ___
 
     - image: `photo of the person`
 
-## Delete person
+# Delete person
 
 - URL: `{baseUrl}/people/:personId`
 
@@ -308,7 +308,7 @@ __
 
 # Users
 
-## Update user
+# Update user
 
 - URL: `{baseUrl}/user/:userId`
 
@@ -329,7 +329,7 @@ __
 
 # Events
 
-## Create event
+# Create event
 
 - URL: `{baseUrl}/events/raspiId`
 
@@ -345,7 +345,7 @@ __
 
     - image: `photo of the person`
 
-## Get event
+# Get event
 
 - URL: `{baseUrl}/events/:eventId`
 
@@ -355,7 +355,7 @@ __
 
   - Authorization: `Bearer {token}`
 
-## Get events
+# Get events
 
 - URL: `{baseUrl}/events/user/:userId`
 
@@ -365,7 +365,7 @@ __
 
   - Authorization: `Bearer {token}`
 
-## Delete event
+# Delete event
 
 - URL: `{baseUrl}/events/:eventId`
 
@@ -375,7 +375,7 @@ __
 
   - Authorization: `Bearer {token}`
 
-## Delete events
+# Delete events
 
 - URL: `{baseUrl}/events/user/:userId`
 
