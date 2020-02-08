@@ -72,9 +72,9 @@ module.exports.createEvent = (req, res, next) => {
                     })
 
             } else {
+                fs.unlinkSync(fileName);
                 eventDescription = "Unknown person detected!";
-                sendEvent(eventDescription, imageUrl, user.telegramId);
-                return s3DeleteFileSync(fileId, AWS_EVENTS_BKTNAME);
+                return sendEvent(eventDescription, imageUrl, user.telegramId);
             }
         })
         .then(result => {
