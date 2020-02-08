@@ -38,6 +38,7 @@ module.exports.createEvent = (req, res, next) => {
             if (faceMatch.length > 0) {
                 return Person.findOne({ faceId: faceMatch[0].Face.FaceId })
                     .then(personResult => {
+                        console.log(`Event person found: ${personResult}`)
                         person = personResult;
                         eventDescription = `Person: ${person.name}; - Degree: ${person.degree}; Detected!`;
                         if (person.doCount) {
