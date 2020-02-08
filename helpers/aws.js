@@ -91,8 +91,14 @@ module.exports.searchFacesByImage = (collectionId, bkt_name, file) => {
             if (err) {
                 reject(err);
             }
-            console.log(JSON.stringify(data));
-            resolve(data.FaceMatches);
+            console.log(`Search Faces Response: ${JSON.stringify(data)}`);
+            if (data) {
+                resolve(data.FaceMatches);
+            }
+            else {
+                resolve([]);
+            }
+
         });
     })
 }
