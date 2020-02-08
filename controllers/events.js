@@ -72,7 +72,6 @@ module.exports.createEvent = (req, res, next) => {
                     })
 
             } else {
-                fs.unlinkSync(fileName);
                 eventDescription = "Unknown person detected!";
                 return sendEvent(eventDescription, imageUrl, user.telegramId);
             }
