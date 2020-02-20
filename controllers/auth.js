@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const AWS = require('aws-sdk');
 const uuid = require('uuid');
 const User = require('../models/user');
+const RaspiConfig = require('../models/raspiConfig');
 
 const AWS_ID = process.env.AWS_ID;
 const AWS_SECRET = process.env.SECRET;
@@ -22,12 +23,21 @@ exports.signup = (req, res, next) => {
         error.data = errors.array();
         throw error;
     }
+
     const email = req.body.email;
     const name = req.body.name;
     const password = req.body.password;
     const telegramId = req.body.telegramId;
-    const raspiId = req.body.raspiId;
-    createCollectionSync()
+    const newConfig = {
+        raspiId: req.body.raspiId,
+        resolution: req.body.resolution,
+        confidence: req.body.confidence
+    }
+    const raspiConfig = new RaspiConfig(newConfig);
+    raspiConfig.save()
+        .then(result => {
+            return createCollectionSync();
+        })
         .then(collectionId => {
             bcrypt
                 .hash(password, 12)
@@ -37,7 +47,7 @@ exports.signup = (req, res, next) => {
                         password: hashedPw,
                         name: name,
                         telegramId: telegramId,
-                        raspiId: raspiId,
+                        raspiConfig: raspiConfig,
                         collectionId: collectionId
                     });
                     return user.save();
@@ -62,7 +72,6 @@ exports.signup = (req, res, next) => {
             }
             next(err);
         })
-
 };
 
 exports.login = (req, res, next) => {
