@@ -85,10 +85,7 @@ exports.createPerson = (req, res, next) => {
                 doCount: doCount,
                 doNotify: doNotify,
             });
-            return person;
-        })
-        .then(person => {
-            return person.save()
+            return person.save();
         })
         .then(result => {
             user.people.push(person);

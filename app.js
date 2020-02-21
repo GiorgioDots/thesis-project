@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const peopleRoutes = require('./routes/people');
 const userRoutes = require('./routes/user');
 const eventsRoutes = require('./routes/events');
+const raspiConfigRoutes = require('./routes/raspiConfig');
 const bot = require('./utils/telegram-bot');
 
 const app = express();
@@ -23,18 +24,17 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();
 });
-
 app.use('/auth', authRoutes);
 app.use('/people', peopleRoutes);
 app.use('/user', userRoutes);
 app.use('/events', eventsRoutes);
+app.use('/raspi', raspiConfigRoutes);
 app.get('/healthcheck', (req, res, next) => { res.status(200).json({ status: "ok" }); next() })
 app.post('/' + bot.token, (req, res) => {
     console.log(req);
     bot.processUpdate(req.body);
     res.sendStatus(200);
 });
-
 app.use((error, req, res, next) => {
     console.log(error);
     const status = error.statusCode || 500;
@@ -46,7 +46,10 @@ app.use((error, req, res, next) => {
 mongoose
     .connect(process.env.MONGO_SRV, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(result => {
-        app.listen(process.env.PORT || 8080);
+        let port = process.env.PORT || 8080;
+        app.listen(port, () => {
+            console.log(`Server listening on port: ${port}`);
+        });
     })
     .catch(err => console.log(err));
 

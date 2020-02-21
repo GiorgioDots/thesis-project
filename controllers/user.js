@@ -13,12 +13,10 @@ exports.updateUser = (req, res, next) => {
     const userId = req.params.id;
     const name = req.body.name;
     const telegramId = req.body.telegramId;
-    const raspiId = req.body.raspiId;
     User.findById(userId)
         .then(user => {
             user.name = name;
             user.telegramId = telegramId;
-            user.raspiId = raspiId;
             return user.save();
         })
         .then(result => {

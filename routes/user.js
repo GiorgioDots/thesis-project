@@ -12,8 +12,6 @@ router.put(
     [
         body('telegramId')
             .trim(),
-        body('raspiId')
-            .trim(),
         body('name')
             .trim()
     ],
