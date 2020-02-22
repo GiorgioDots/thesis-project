@@ -31,9 +31,11 @@ module.exports.createEvent = (req, res, next) => {
             return RaspiConfig.findOne({ raspiId: req.params.raspiId });
         })
         .then(result => {
-            return User.findOne({ RaspiConfig: result._id });
+            console.log(`Find raspiConfig result: ${result}`);
+            return User.findOne({ RaspiConfig: result });
         })
         .then(result => {
+            console.log(`Find person result: ${result}`)
             user = result;
             return searchFacesByImage(user.collectionId, AWS_EVENTS_BKTNAME, fs.readFileSync(fileName));
         })
