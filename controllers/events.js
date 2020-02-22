@@ -4,6 +4,7 @@ const { sendEvent } = require('../helpers/telegram');
 const User = require('../models/user');
 const Event = require('../models/event');
 const Person = require('../models/person');
+const RaspiConfig = require('../models/raspiConfig');
 
 const { s3UploadFileSync, searchFacesByImage, s3DeleteFileSync } = require('../helpers/aws');
 const { saveFileSync } = require('../helpers/fs');
@@ -27,7 +28,10 @@ module.exports.createEvent = (req, res, next) => {
         })
         .then(url => {
             imageUrl = url;
-            return User.findOne({ raspiId: req.params.raspiId });
+            return RaspiConfig.findOne({ raspiId: req.params.raspiId });
+        })
+        .then(result => {
+            return User.findOne({ RaspiConfig: result._id });
         })
         .then(result => {
             user = result;
