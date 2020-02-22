@@ -32,7 +32,7 @@ module.exports.createEvent = (req, res, next) => {
         })
         .then(result => {
             console.log(`Find raspiConfig result: ${result}`);
-            return User.findOne({ RaspiConfig: result });
+            return User.findOne({ raspiConfig: result._id });
         })
         .then(result => {
             console.log(`Find person result: ${result}`)
