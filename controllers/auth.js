@@ -86,7 +86,16 @@ exports.login = (req, res, next) => {
                 throw error;
             }
             loadedUser = user;
-            return bcrypt.compare(password, user.password);
+            return RaspiConfig.findOne({ "_id": loadedUser.raspiConfig });
+        })
+        .then(result => {
+            if (!result) {
+                const error = new Error('Could not find the raspiConfig.');
+                error.statusCode = 404;
+                throw error;
+            }
+            loadedUser.raspiConfig = result;
+            return bcrypt.compare(password, loadedUser.password);
         })
         .then(isEqual => {
             if (!isEqual) {
