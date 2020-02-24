@@ -26,6 +26,9 @@ module.exports.updateRaspiConfig = (req, res, next) => {
     let raspiConfig;
     RaspiConfig.findOne({ raspiId: raspiId })
         .then(result => {
+            if (!result) {
+                throw new Error(`RaspiId ${raspiId} not found`);
+            }
             let resolution = req.body.resolution;
             let confidence = req.body.confidence;
             if (!resolution || !confidence) {
