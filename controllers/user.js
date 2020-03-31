@@ -58,7 +58,7 @@ exports.updateUser = async (req, res, next) => {
       message = "User updated successfully.";
     }
     logger.info(`User whith id ${userId} updated`);
-    res.status(201).json({
+    res.status(200).json({
       message: message,
       user: {
         id: user._id.toString(),
