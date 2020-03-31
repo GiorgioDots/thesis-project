@@ -1,67 +1,112 @@
-const RaspiConfig = require('../models/raspiConfig');
-const request = require('request-promise-native');
+const request = require("request-promise-native");
+const { validationResult } = require("express-validator");
 
-module.exports.getRaspiConfig = (req, res, next) => {
-    const raspiId = req.params.raspiId;
-    RaspiConfig.findOne({ raspiId: raspiId })
-        .then(raspiConfig => {
-            if (raspiConfig) {
-                res.status(201).json(raspiConfig);
-            } else {
-                throw new Error(`RaspiConfig not found; RaspiId ${raspiId} doesn't exists`);
-            }
-        })
-        .catch(error => {
-            if (!error.statusCode) {
-                error.statusCode = 500;
-            }
-            next(error);
-        })
-}
-module.exports.updateRaspiConfig = (req, res, next) => {
-    const raspiId = req.params.raspiId;
-    if (!raspiId) {
-        throw new Error(`Could not update the raspi, raspiId not found.`);
+const logger = require("../utils/logger");
+const User = require("../models/user");
+const RaspiConfig = require("../models/raspiConfig");
+
+exports.getRaspiConfigs = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const user = await User.findById(userId).populate("raspiConfigs");
+    const configs = user.raspiConfigs;
+    logger.info(`User with id ${userId} retrieved his raspi configs`);
+    res.status(200).json({ message: "Success.", raspiConfigs: configs });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+module.exports.getRaspiConfig = async (req, res, next) => {
+  const configId = req.params.configId;
+  if (!configId) {
+    const error = new Error("RaspiConfig not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  try {
+    const user = await User.findById(req.userId).populate("raspiConfigs");
+    const configs = user.raspiConfigs;
+    const config = configs.find(cfg => cfg._id.toString() === configId);
+    if (!config) {
+      const error = new Error("RaspiConfig not found.");
+      error.statusCode = 404;
+      throw error;
     }
-    let raspiConfig;
-    RaspiConfig.findOne({ raspiId: raspiId })
-        .then(result => {
-            if (!result) {
-                throw new Error(`RaspiId ${raspiId} not found`);
-            }
-            let resolution = req.body.resolution;
-            let confidence = req.body.confidence;
-            if (!resolution || !confidence) {
-                throw new Error(`Could not update the raspi: ${raspiId}, confidence or resolution not found.`);
-            }
-            result.confidence = confidence;
-            result.resolution = resolution;
-            raspiConfig = result;
-            return request(
-                {
-                    url: `${process.env.WS_CONTROLLER_URL}/raspi/${raspiId}`,
-                    method: "POST",
-                    json: {
-                        resolution: resolution,
-                        confidence: confidence,
-                        raspiId: raspiId
-                    }
-                }
-            );
-        })
-        .then(result => {
-            if (result.error) {
-                throw new Error('Could not update raspiId');
-            }
-            return raspiConfig.save();
-        })
-        .then(result => {
-            res.status(201).json({ message: "RaspiConfig Updated!", raspiConfig });
-        })
-        .catch(error => {
-            if (!error.statusCode) {
-                error.statusCode = 500;
-            }
-            next(error);
-        })
-}
+    logger.info(
+      `User with id ${req.userId} retrieved raspi config with id ${configId}`
+    );
+    res
+      .status(201)
+      .json({ message: "RaspiConfig found.", raspiConfig: config });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+module.exports.updateRaspiConfig = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed.");
+    error.statusCode = 422;
+    error.errors = errors.array();
+    return next(error);
+  }
+  const configId = req.params.configId;
+  if (!configId) {
+    const error = new Error("RaspiConfig not found.");
+    error.statusCode = 404;
+    return next(error);
+  }
+  try {
+    const user = await User.findById(req.userId).populate("raspiConfigs");
+    const configs = user.raspiConfigs;
+    const isConfigOwner = configs.find(cfg => cfg._id.toString() === configId);
+    if (!isConfigOwner) {
+      const error = new Error("RaspiConfig not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    let isModified = false;
+    const resolution = req.body.resolution;
+    const confidence = req.body.confidence;
+    const config = await RaspiConfig.findById(configId);
+    if (resolution) {
+      if (config.resolution !== resolution) {
+        config.resolution = resolution;
+        isModified = true;
+      }
+    }
+    if (confidence) {
+      if (config.confidence !== confidence) {
+        config.confidence = confidence;
+        isModified = true;
+      }
+    }
+    let message = "Nothing to update.";
+    if (isModified) {
+      message = "RaspiConfig updated.";
+      config.save();
+      try {
+        await request({
+          url: `${process.env.WS_CONTROLLER_URL}/raspi/${config.raspiId}`,
+          method: "POST",
+          json: {
+            resolution: config.resolution,
+            confidence: config.confidence,
+            raspiId: config.raspiId
+          }
+        });
+      } catch (error) {
+        message =
+          "RaspiConfig Updated, but it isn't connected to the internet.";
+      }
+    }
+    logger.info(
+      `User with id ${req.userId} updated raspi config with id ${configId}`
+    );
+    res.status(200).json({ message: message, raspiConfig: config });
+  } catch (err) {
+    return next(err);
+  }
+};
