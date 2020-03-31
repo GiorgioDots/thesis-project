@@ -1,8 +1,53 @@
+# Index
+
+- [Schemes](#Schemes)
+
+  1. [User Schema](#Default-user-schema)
+
+  2. [Person Schema](#Default-person-schema)
+
+  3. [Event Schema](#Default-event-schema)
+
+- [Authentication](#Authentication)
+
+  1. [Login](#Login);
+
+  2. [Signup](#Signup);
+
+- [People handling](#People-handling)
+
+  1. [Get People](#Get-user's-people)
+
+  2. [Get Person](#Get-person)
+
+  3. [Create Person](#Create-person)
+
+  4. [Update Person](#Update-person)
+
+  5. [Delete Person](#Delete-person)
+
+- [Users](#Users)
+
+  1. [Update User](#Update-user)
+
+- [Events](#Events)
+
+  1. [Create event](#Create-event)
+
+  2. [Get event](#Get-event)
+
+  3. [Get events](#Get-events)
+
+  4. [Delete event](#Delete-event)
+
+  5. [Delete events](#Delete-events)
+
+# Schemes
+
 # Default user schema
 
 ```
-{
-  telegramId: {
+telegramId: {
     type: String,
     required: true
   },
@@ -11,7 +56,7 @@
     required: true
   },
   raspiId: {
-    type: Array,
+    type: String,
     required: true
   },
   email: {
@@ -24,14 +69,25 @@
       ref: 'Person'
     }
   ],
+  events: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Event'
+    }
+  ],
   password: {
     type: String,
     required: true
-  }
+  },
+  collectionId: {
+    type: String,
+    required: true
 }
 ```
-___
-# Default people schema
+
+---
+
+# Default person schema
 
 ```
 {
@@ -51,120 +107,320 @@ ___
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  faceId: {
+    type: String,
+    required: true
+  },
+  imageName: {
+    type: String,
+    required: true
+  },
+  doCount: {
+    type: Boolean,
+    required: true
+  },
+  counter: {
+    type: Number,
+    default: 0
+  },
+  doNotify: {
+    type: Boolean,
+    required: true
   }
 }
 
 ```
-___
+
+# Default event schema
+
+```
+{
+  person: {
+    type: Schema.Types.ObjectId,
+    ref: 'Person',
+    required: true
+  },
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  imageName: {
+    type: String,
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    required: true
+  }
+}
+```
+
+---
+
 # Authentication
 
-## Signup
+# Login
 
-Method: PUT
+- URL: `{baseUrl}/auth/login`
 
-endpoint: {{url}}/auth/signup
+- Method: `POST`
 
-Request body (require those information):
-```
+- Body:
+
+```json
 {
-	"email": "test@test.com",
-	"name": "Giorgio Dodesini",
-	"raspiId": "2569ADS6",
-	"telegramId": "13541",
-	"password": "password"
+  "email": "test@test.com",
+  "password": "123456"
 }
 ```
-Response status 200: 
-```
-{
-  "message": "Success!",
-  "userId": "UID for user",
-  "token": "Bearer token"
-}
 
-```
-Response status 422 missing/wrong information:
-```
-[
-  {
-    "value": undefined,
-    "msg": 'Please enter a valid email.',
-    "param": 'email',
-    "location": 'body'
-  },
-  {
-    "value": '',
-    "msg": 'Invalid value',
-    "param": 'password',
-    "location": 'body'
-  },
-  {
-    "value": '',
-    "msg": 'Invalid value',
-    "param": 'telegramId',
-    "location": 'body'
-  },
-  {
-    "value": '',
-    "msg": 'Invalid value',
-    "param": 'raspiId',
-    "location": 'body'
-  },
-  {
-    "value": '',
-    "msg": 'Invalid value',
-    "param": 'name',
-    "location": 'body'
+response
+
+```json
+{
+  "message": "String",
+  "token": "String",
+  "user": {
+    "id": "String",
+    "telegramId": "String",
+    "name": "String",
+    "raspiConfigs": [],
+    "email": "String",
+    "people": [],
+    "events": []
   }
-]
-```
-Response status 422 email already used:
-```
-{
-    "message": "Validation failed.",
-    "data": [
-        {
-            "value": "test@test.com",
-            "msg": "E-Mail address already exists!",
-            "param": "email",
-            "location": "body"
-        }
-    ]
 }
 ```
-Response status 500 = General internal error;
-___
-## Login
 
-method: POST
+# Signup
 
-endpoint: {{url}}/auth/login
+- URL: `{baseUrl}/auth/signup`
 
-Request body (require those information):
-```
+- Method: `PUT`
+
+- Body example:
+
+```json
 {
-	"email": "test@test.com",
-	"password": "password"
+  "email": "test2@test.com",
+  "name": "Giorgio Dodesini",
+  "raspiId": "2569ADS6",
+  "telegramId": "13541",
+  "password": "123456"
 }
 ```
-Response status 200:
-```
+
+response
+
+```json
 {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJ1c2VySWQiOiI1ZGVkNjU5MmU3N2Q1ZDJhMWMwZTI0MTAiLCJpYXQiOjE1NzU4Mzk2Njh9.mAQcZlOil3T6uvLRVhlCEAh_1yPnT6qCnVmAT7dsYkI",
-    "userId": "5ded6592e77d5d2a1c0e2410"
+  "message": "String",
+  "token": "String",
+  "user": {
+    "telegramId": "String",
+    "name": "String",
+    "raspiConfigs": [],
+    "email": "String",
+    "people": [],
+    "events": []
+  }
 }
 ```
-Response status 401:
+
+---
+
+# People handling
+
+# Get user's people
+
+- URL: `{baseUrl}/people/`
+
+- Method: `GET`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+- Body example:
+
 ```
 {
-    "message": "A user with this email could not be found."
+	"userId": "5df4fcc03704a811a0b07135"
 }
 ```
-or
+
+# Get person
+
+- URL: `{baseUrl}/people/:personId`
+
+- METHOD: `GET`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+- Body example:
+
 ```
 {
-    "message": "Wrong password!"
+	"userId": "5df4fcc03704a811a0b07135"
 }
 ```
-Response status 500 = General internal error;
-___
+
+# Create person
+
+- URL: `{baseUrl}/people`
+
+- METHOD: `POST`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+  - Content-Type: application/x-www-form-urlencoded
+
+- Query parameters:
+
+  - name: `person name`
+
+  - degree: `kindship degree of the person`
+
+  - userId: `id of the user who is creating a person`
+
+- Body:
+
+  - type: form-data
+
+    - image: `photo of the person`
+
+# Update person
+
+- URL: `{baseUrl}/people/personId`
+
+- METHOD: `PUT`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+  - Content-Type: application/x-www-form-urlencoded
+
+- Query parameters:
+
+  - name: `person name`
+
+  - degree: `kindship degree of the person`
+
+  - userId: `id of the user who is updating the person`
+
+- Body:
+
+  - type: form-data
+
+    - image: `photo of the person`
+
+# Delete person
+
+- URL: `{baseUrl}/people/:personId`
+
+- METHOD: `GET`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+- Query parameters:
+
+  - userId: `id of the user who is deleting a person`
+
+\_\_
+
+# Users
+
+# Update user
+
+- URL: `{baseUrl}/user/:userId`
+
+- METHOD: `PUT`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+- Body example:
+
+```
+{
+	"name": "Kebab",
+	"telegramId": "1",
+	"raspiId": "2"
+}
+```
+
+# Events
+
+# Create event
+
+- URL: `{baseUrl}/events/raspiId`
+
+- METHOD: `POST`
+
+- Headers:
+
+  - Content-Type: application/x-www-form-urlencoded
+
+- Body:
+
+  - type: form-data
+
+    - image: `photo of the person`
+
+# Get event
+
+- URL: `{baseUrl}/events/:eventId`
+
+- METHOD: `GET`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+# Get events
+
+- URL: `{baseUrl}/events/user/:userId`
+
+- METHOD: `GET`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+# Delete event
+
+- URL: `{baseUrl}/events/:eventId`
+
+- METHOD: `DELETE`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`
+
+# Delete events
+
+- URL: `{baseUrl}/events/user/:userId`
+
+- METHOD: `DELETE`
+
+- Headers:
+
+  - Authorization: `Bearer {token}`

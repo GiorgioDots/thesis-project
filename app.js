@@ -3,50 +3,54 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const fileUpload = require('express-fileupload');
+const helmet = require('helmet');
 
+const headersSetter = require('./middleware/header-setter');
+const errorHandler = require('./middleware/error-handler');
 const authRoutes = require('./routes/auth');
 const peopleRoutes = require('./routes/people');
 const userRoutes = require('./routes/user');
 const eventsRoutes = require('./routes/events');
-const bot = require('./utils/telegram-bot');
+const raspiConfigRoutes = require('./routes/raspiConfig');
+
+const { bot, botController } = require('./utils/telegram-bot');
+const logger = require('./utils/logger');
 
 const app = express();
 
+app.use(helmet());
+app.use(headersSetter);
 app.use(bodyParser.json());
 app.use(fileUpload());
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader(
-        'Access-Control-Allow-Methods',
-        'OPTIONS, GET, POST, PUT, PATCH, DELETE'
-    );
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
-});
 
+//ROUTES
 app.use('/auth', authRoutes);
 app.use('/people', peopleRoutes);
 app.use('/user', userRoutes);
 app.use('/events', eventsRoutes);
-app.get('/healthcheck', (req, res, next) => { res.status(200).json({ status: "ok" }); next() })
-app.post('/' + bot.token, (req, res) => {
-    console.log(req);
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
+app.use('/raspi', raspiConfigRoutes);
+app.get('/healthcheck', (req, res, next) => {
+  res.status(200).json({ status: 'ok' });
+  next();
 });
+app.post('/' + bot.token, botController);
 
-app.use((error, req, res, next) => {
-    console.log(error);
-    const status = error.statusCode || 500;
-    const message = error.message;
-    const data = error.data;
-    res.status(status).json({ message: message, data: data });
-});
+app.use(errorHandler);
 
 mongoose
-    .connect(process.env.MONGO_SRV, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(result => {
-        app.listen(process.env.PORT || 8080);
-    })
-    .catch(err => console.log(err));
-
+  .connect(process.env.MONGO_SRV, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true
+  })
+  .then(result => {
+    logger.info('Connected to mongodb');
+    const port = process.env.PORT || 8080;
+    return app.listen(port);
+  })
+  .then(server => {
+    logger.info(`Server listening on port: ${server.address().port}`);
+  })
+  .catch(err => {
+    logger.error(err);
+  });
