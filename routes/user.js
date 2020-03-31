@@ -10,17 +10,17 @@ router.put(
   "/",
   [
     body("telegramId")
-      .optional()
+      .optional({ nullable: true, checkFalsy: true })
       .trim(),
     body("name")
-      .optional()
+      .optional({ nullable: true, checkFalsy: true })
       .trim(),
     body("password", "Password must be min 5 characters long")
-      .optional()
+      .optional({ nullable: true, checkFalsy: true })
       .trim()
       .isLength({ min: 5 }),
     body("email", "Please enter a valid e-mail.")
-      .optional()
+      .optional({ nullable: true, checkFalsy: true })
       .trim()
       .isEmail()
       .normalizeEmail()
