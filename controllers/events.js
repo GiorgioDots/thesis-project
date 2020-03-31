@@ -10,7 +10,7 @@ const {
   s3UploadFileSync,
   searchFacesByImage,
   s3DeleteFileSync
-} = require('../helpers/aws');
+} = require('../utils/aws');
 const { saveFileSync } = require('../helpers/fs');
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 

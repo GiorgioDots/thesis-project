@@ -8,7 +8,7 @@ const {
   s3UploadFileSync,
   addFaceInCollectionSync,
   deleteFaceFromCollectionSync
-} = require('../helpers/aws');
+} = require('../utils/aws');
 const { saveFileSync } = require('../helpers/fs');
 const fs = require('fs');
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;

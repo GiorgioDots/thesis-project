@@ -1,10 +1,33 @@
 const AWS = require('aws-sdk');
+const uuid = require('uuid');
+
+const AWS_ID = process.env.AWS_ID;
+const AWS_SECRET = process.env.SECRET;
+const AWS_REGION = process.env.AWS_REGION;
 
 const s3 = new AWS.S3();
+const rekognition = new AWS.Rekognition({
+  accessKeyId: AWS_ID,
+  secretAccessKey: AWS_SECRET,
+  region: AWS_REGION
+});
 
-const rekognition = new AWS.Rekognition();
+exports.createCollectionSync = () => {
+  const collectionId = uuid();
+  const params = {
+    CollectionId: collectionId
+  };
+  return new Promise((resolve, reject) => {
+    rekognition.createCollection(params, (err, data) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(collectionId);
+    });
+  });
+};
 
-module.exports.s3UploadFileSync = (file, fileId, bkt_name) => {
+exports.s3UploadFileSync = (file, fileId, bkt_name) => {
   const s3Params = {
     Bucket: bkt_name,
     Key: fileId,
@@ -21,7 +44,7 @@ module.exports.s3UploadFileSync = (file, fileId, bkt_name) => {
   });
 };
 
-module.exports.s3DeleteFileSync = (objName, bkt_name) => {
+exports.s3DeleteFileSync = (objName, bkt_name) => {
   const params = {
     Bucket: bkt_name,
     Key: objName
@@ -36,7 +59,7 @@ module.exports.s3DeleteFileSync = (objName, bkt_name) => {
   });
 };
 
-module.exports.deleteFaceFromCollectionSync = (collectionId, faceId) => {
+exports.deleteFaceFromCollectionSync = (collectionId, faceId) => {
   const params = {
     CollectionId: collectionId,
     FaceIds: [faceId]
@@ -51,7 +74,7 @@ module.exports.deleteFaceFromCollectionSync = (collectionId, faceId) => {
   });
 };
 
-module.exports.addFaceInCollectionSync = (collectionId, fileId, bkt_name) => {
+exports.addFaceInCollectionSync = (collectionId, fileId, bkt_name) => {
   const params = {
     CollectionId: collectionId,
     Image: {
@@ -74,7 +97,7 @@ module.exports.addFaceInCollectionSync = (collectionId, fileId, bkt_name) => {
   });
 };
 
-module.exports.searchFacesByImage = (collectionId, bkt_name, file) => {
+exports.searchFacesByImage = (collectionId, bkt_name, file) => {
   var params = {
     CollectionId: collectionId,
     Image: {

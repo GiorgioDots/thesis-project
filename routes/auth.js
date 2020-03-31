@@ -38,6 +38,12 @@ router.put(
       .trim(),
     body('name', 'Please enter a name')
       .notEmpty()
+      .trim(),
+    body('confidence', 'Please enter a raspberry confidence')
+      .notEmpty()
+      .trim(),
+    body('resolution', 'Please enter a raspberry resolution')
+      .notEmpty()
       .trim()
   ],
   authController.signup

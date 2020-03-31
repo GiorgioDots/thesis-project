@@ -12,13 +12,16 @@ const userSchema = new Schema(
       type: String,
       required: true
     },
-    raspiConfig: {
-      type: Schema.Types.ObjectId,
-      ref: 'RaspiConfig'
-    },
+    raspiConfigs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'RaspiConfig'
+      }
+    ],
     email: {
       type: String,
-      required: true
+      required: true,
+      unique: true
     },
     people: [
       {
