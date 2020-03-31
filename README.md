@@ -1,7 +1,7 @@
 # Index
 
 - [Schemes](#Schemes)
-  
+
   1. [User Schema](#Default-user-schema)
 
   2. [Person Schema](#Default-person-schema)
@@ -9,12 +9,13 @@
   3. [Event Schema](#Default-event-schema)
 
 - [Authentication](#Authentication)
+
   1. [Login](#Login);
-  
+
   2. [Signup](#Signup);
 
 - [People handling](#People-handling)
-  
+
   1. [Get People](#Get-user's-people)
 
   2. [Get Person](#Get-person)
@@ -38,7 +39,7 @@
   3. [Get events](#Get-events)
 
   4. [Delete event](#Delete-event)
-  
+
   5. [Delete events](#Delete-events)
 
 # Schemes
@@ -83,7 +84,9 @@ telegramId: {
     required: true
 }
 ```
-___
+
+---
+
 # Default person schema
 
 ```
@@ -128,6 +131,7 @@ ___
 }
 
 ```
+
 # Default event schema
 
 ```
@@ -161,7 +165,7 @@ ___
 }
 ```
 
-___
+---
 
 # Authentication
 
@@ -171,12 +175,30 @@ ___
 
 - Method: `POST`
 
-- Body: 
+- Body:
 
-```
+```json
 {
-	"email": "test@test.com",
-	"password": "123456"
+  "email": "test@test.com",
+  "password": "123456"
+}
+```
+
+response
+
+```json
+{
+  "message": "String",
+  "token": "String",
+  "user": {
+    "id": "String",
+    "telegramId": "String",
+    "name": "String",
+    "raspiConfigs": [],
+    "email": "String",
+    "people": [],
+    "events": []
+  }
 }
 ```
 
@@ -188,17 +210,34 @@ ___
 
 - Body example:
 
-```
+```json
 {
-	"email": "test2@test.com",
-	"name": "Giorgio Dodesini",
-	"raspiId": "2569ADS6",
-	"telegramId": "13541",
-	"password": "123456"
+  "email": "test2@test.com",
+  "name": "Giorgio Dodesini",
+  "raspiId": "2569ADS6",
+  "telegramId": "13541",
+  "password": "123456"
 }
 ```
 
-___
+response
+
+```json
+{
+  "message": "String",
+  "token": "String",
+  "user": {
+    "telegramId": "String",
+    "name": "String",
+    "raspiConfigs": [],
+    "email": "String",
+    "people": [],
+    "events": []
+  }
+}
+```
+
+---
 
 # People handling
 
@@ -211,7 +250,7 @@ ___
 - Headers:
 
   - Authorization: `Bearer {token}`
-  
+
 - Body example:
 
 ```
@@ -304,7 +343,7 @@ ___
 
   - userId: `id of the user who is deleting a person`
 
-__
+\_\_
 
 # Users
 
@@ -319,6 +358,7 @@ __
   - Authorization: `Bearer {token}`
 
 - Body example:
+
 ```
 {
 	"name": "Kebab",

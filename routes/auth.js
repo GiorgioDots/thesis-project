@@ -58,7 +58,14 @@ router.post(
       .trim()
       .isEmail()
       .withMessage('Please enter a valid e-mail.')
-      .normalizeEmail(),
+      .normalizeEmail()
+      .custom((value, { req }) => {
+        return User.findOne({ email: value }).then(userDoc => {
+          if (!userDoc) {
+            return Promise.reject('Wrong input.');
+          }
+        });
+      }),
     body('password')
       .notEmpty()
       .withMessage('Please enter a password.')
