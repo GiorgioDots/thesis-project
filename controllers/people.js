@@ -38,7 +38,7 @@ exports.getPerson = async (req, res, next) => {
       throw error;
     }
     if (person.userId.toString() !== userId.toString()) {
-      const error = new Error("You are not the creator.");
+      const error = new Error("Not authorized. You are not the creator.");
       error.statusCode = 401;
       throw error;
     }
@@ -201,55 +201,31 @@ exports.updatePerson = (req, res, next) => {
     });
 };
 
-exports.deletePerson = (req, res, next) => {
+exports.deletePerson = async (req, res, next) => {
   const personId = req.params.personId;
-  const userId = req.query.userId;
-  let faceId;
-  let collectionId;
-  Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then((result) => {
-      if (result.length == 0) {
-        throw new Error("Coult not find person");
-      }
-      const person = result[0];
-      return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME);
-    })
-    .then((done) => {
-      if (!done) {
-        throw new Error("Couldn't delete image");
-      }
-      return Person.findByIdAndRemove(personId);
-    })
-    .then((result) => {
-      faceId = result.faceId;
-      return User.findById(userId);
-    })
-    .then((user) => {
-      collectionId = user.collectionId;
-      user.people.pull(personId);
-      return user.save();
-    })
-    .then((result) => {
-      user = result;
-      return deleteFacesFromCollectionSync(collectionId, faceId);
-    })
-    .then((result) => {
-      return Event.find({ person: personId });
-    })
-    .then((result) => {
-      for (event of result) {
-        s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
-        user.events.pull(event._id); //events of events?
-      }
-      return user.save();
-    })
-    .then((result) => {
-      return res.status(200).json({ message: "Person deleted" });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
-    });
+  const userId = req.userId;
+  try {
+    const person = await Person.findById(personId);
+    if (!person) {
+      const error = new Error("Person not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (person.userId.toString() !== userId.toString()) {
+      const error = new Error("Not authorized. You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    const faceId = person.faceId;
+    await s3DeleteFileSync(person.imageId, AWS_PEOPLE_BKTNAME);
+    await Person.findByIdAndRemove(personId);
+    const user = await User.findById(userId);
+    const collectionId = user.collectionId;
+    user.people.pull(personId);
+    await deleteFacesFromCollectionSync(collectionId, [faceId]);
+    await user.save();
+    res.status(200).json({ message: "Person deleted." });
+  } catch (error) {
+    return next(error);
+  }
 };
