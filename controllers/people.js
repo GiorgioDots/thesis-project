@@ -18,11 +18,20 @@ const FILE_EXT_ALLOWED = [".png", ".jpg", ".jpeg"];
 
 exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
+  const perPage = +req.query.perPage || 10;
+  const currentPage = req.query.page || 1;
+  
   try {
-    const people = await Person.find({ userId: userId.toString() });
+    const totalPeople = await Person.find({
+      userId: userId.toString(),
+    }).countDocuments();
+    const people = await Person.find({ userId: userId.toString() })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
     res.status(200).json({
       message: "People retrieved successfully.",
       people: people,
+      totalPeople: totalPeople,
     });
   } catch (error) {
     next(error);
@@ -69,7 +78,9 @@ exports.createPerson = async (req, res, next) => {
   const file = req.files.image;
   if (!FILE_EXT_ALLOWED.includes(path.extname(file.name))) {
     console.log(path.extname(file.name));
-    const error = new Error("The format of the image must be png, jpg or jpeg.");
+    const error = new Error(
+      "The format of the image must be png, jpg or jpeg."
+    );
     error.statusCode = 422;
     return next(error);
   }
