@@ -29,7 +29,23 @@ router.put(
   peopleController.createPerson
 );
 
-router.post("/:personId", isAuth, peopleController.updatePerson);
+router.post(
+  "/:personId",
+  isAuth,
+  [
+    body("name")
+      .optional({ checkFalsy: true })
+      .trim(),
+    body("doNotify")
+      .optional({ checkFalsy: true })
+      .not()
+      .isString()
+      .withMessage("Please enter only true or false.")
+      .isBoolean()
+      .withMessage("Please enter only true or false."),
+  ],
+  peopleController.updatePerson
+);
 
 router.delete("/:personId", isAuth, peopleController.deletePerson);
 

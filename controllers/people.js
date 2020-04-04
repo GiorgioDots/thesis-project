@@ -1,17 +1,20 @@
-const { validationResult } = require("express-validator");
+const path = require("path");
+const fs = require("fs");
 const uuid = require("uuid");
+const { validationResult } = require("express-validator");
+
 const Person = require("../models/person");
 const User = require("../models/user");
-const Event = require("../models/event");
+const { saveFileSync } = require("../utils/fs");
 const {
   s3DeleteFileSync,
   s3UploadFileSync,
   indexFacesSync,
   deleteFacesFromCollectionSync,
 } = require("../utils/aws");
-const { saveFileSync } = require("../utils/fs");
-const fs = require("fs");
+
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
+const FILE_EXT_ALLOWED = [".png", ".jpg", ".jpeg"];
 
 exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
@@ -65,6 +68,12 @@ exports.createPerson = async (req, res, next) => {
     return next(error);
   }
   const file = req.files.image;
+  if (!FILE_EXT_ALLOWED.includes(path.extname(file.name))) {
+    console.log(path.extname(file.name));
+    const error = new Error("The format of the image must be png, jpg or jpeg");
+    error.statusCode = 422;
+    return next(error);
+  }
   const name = req.body.name;
   const doNotify = req.body.doNotify;
   let description = req.body.description;
@@ -72,7 +81,7 @@ exports.createPerson = async (req, res, next) => {
     description = "";
   }
   const userId = req.userId;
-  const fileId = `${uuid()}.jpg`;
+  const fileId = `${uuid()}.png`;
   const filePath = `./tmp/${fileId}`;
   try {
     await saveFileSync(file, filePath);
@@ -104,7 +113,7 @@ exports.createPerson = async (req, res, next) => {
     const usersPeople = await Person.find({ userId: userId });
     const faceIdExists = usersPeople.find((person) => person.faceId === faceId);
     if (faceIdExists) {
-      const error = new Error("This person is already created.");
+      const error = new Error("This face is already known.");
       error.statusCode = 422;
       throw error;
     }
@@ -130,81 +139,59 @@ exports.createPerson = async (req, res, next) => {
   }
 };
 
-exports.updatePerson = (req, res, next) => {
+exports.updatePerson = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed.");
+    error.statusCode = 422;
+    error.errors = errors.array();
+    return next(error);
+  }
   const personId = req.params.personId;
-  const name = req.query.name;
-  const degree = req.query.degree;
-  const userId = req.query.userId;
-  const doCount = req.query.doCount;
-  const doNotify = req.query.doNotify;
-  Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then((result) => {
-      if (result.length == 0) {
-        throw new Error("Coult not find person");
+  const name = req.body.name;
+  const description = req.body.description;
+  const doNotify = req.body.doNotify;
+  const userId = req.userId;
+  let isModified = false;
+  try {
+    const person = await Person.findById(personId);
+    if (!person) {
+      const error = new Error("Person not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (person.userId.toString() !== userId.toString()) {
+      const error = new Error("Not authorized. You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    if (typeof name === "string") {
+      if (name !== person.name) {
+        person.name = name;
+        isModified = true;
       }
-      const person = result[0];
-
-      person.name = name;
-      person.degree = degree;
-      person.doCount = doCount;
-      person.doNotify = doNotify;
-      if (req.query.counter) {
-        person.counter = req.query.counter;
+    }
+    if (typeof description === "string") {
+      if (description !== person.description) {
+        person.description = description;
+        isModified = true;
       }
-      if (req.files) {
-        const file = req.files.image;
-        const fileId = `${uuid()}.jpg`;
-        const fileName = `./tmp/${fileId}`;
-        let imageUrl;
-        let collectionId;
-        return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME)
-          .then((done) => {
-            if (!done) {
-              throw new Error("Couldn't delete image");
-            }
-            return saveFileSync(file, fileName);
-          })
-          .then((fileName) => {
-            return s3UploadFileSync(
-              fs.readFileSync(fileName),
-              fileId,
-              AWS_PEOPLE_BKTNAME
-            );
-          })
-          .then((imageUrlRes) => {
-            fs.unlinkSync(fileName);
-            imageUrl = imageUrlRes;
-            return User.findById(userId);
-          })
-          .then((user) => {
-            collectionId = user.collectionId;
-            return deleteFacesFromCollectionSync(collectionId, person.faceId);
-          })
-          .then((result) => {
-            return indexFacesSync(collectionId, fileId, AWS_PEOPLE_BKTNAME);
-          })
-          .then((faceId) => {
-            person.imageUrl = imageUrl;
-            person.imageName = fileId;
-            person.faceId = faceId;
-            return person.save();
-          })
-          .catch((error) => {
-            s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
-            throw error;
-          });
+    }
+    if (typeof doNotify === "boolean") {
+      if (doNotify != person.doNotify) {
+        person.doNotify = doNotify;
+        isModified = true;
       }
-      return person.save();
-    })
-    .then((result) => {
-      res.status(200).json({ message: "Person updated!", person: result });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
-    });
+    }
+    let resMessage = "Nothing changed.";
+    if (isModified) {
+      resMessage = "Person updated successfully.";
+      await person.save();
+    }
+    res.status(200).json({ message: resMessage, person: person });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 exports.deletePerson = async (req, res, next) => {
