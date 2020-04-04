@@ -89,7 +89,11 @@ exports.login = async (req, res, next) => {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
-        plantStatus: user.plantStatus
+        plantStatus: user.plantStatus,
+        raspberries: [],
+        people: [],
+        events: [],
+        telegramIds: [],
       },
       token: token,
     });
