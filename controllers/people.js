@@ -53,7 +53,6 @@ exports.getPerson = async (req, res, next) => {
   }
 };
 
-/**CHECK IF FACE ALREADY EXISTS???**/
 exports.createPerson = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -70,7 +69,7 @@ exports.createPerson = async (req, res, next) => {
   const file = req.files.image;
   if (!FILE_EXT_ALLOWED.includes(path.extname(file.name))) {
     console.log(path.extname(file.name));
-    const error = new Error("The format of the image must be png, jpg or jpeg");
+    const error = new Error("The format of the image must be png, jpg or jpeg.");
     error.statusCode = 422;
     return next(error);
   }
