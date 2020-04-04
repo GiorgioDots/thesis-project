@@ -56,7 +56,7 @@ raspiId: String, required
 name: String, required
 imageUrl: String, required
 description: String
-user: reference to User, required
+userId: reference to User, required
 faceId: String ,required
 imageId: String, required
 counter: Number, default 0

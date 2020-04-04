@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.get("/", isAuth, peopleController.getPeople);
 
+router.get("/:personId", isAuth, peopleController.getPerson);
+
 router.put(
   "/",
   isAuth,
@@ -26,8 +28,6 @@ router.put(
   ],
   peopleController.createPerson
 );
-
-router.get("/:personId", isAuth, peopleController.getPerson);
 
 router.post("/:personId", isAuth, peopleController.updatePerson);
 
