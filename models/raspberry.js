@@ -28,7 +28,7 @@ const raspberrySchema = new Schema(
     raspiPassword: String,
     lastImages: [String],
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 module.exports = mongoose.model("Raspberry", raspberrySchema);

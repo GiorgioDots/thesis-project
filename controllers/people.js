@@ -14,33 +14,44 @@ const fs = require("fs");
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
-exports.getPeople = (req, res, next) => {
-  let totalItems;
+exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
-  if (!userId) {
-    next(Error("UserId undefined"));
-  }
-  Person.find({ user: userId })
-    .countDocuments()
-    .then((count) => {
-      totalItems = count;
-      return Person.find({ user: userId });
-    })
-    .then((people) => {
-      res.status(200).json({
-        message: "Success!",
-        people: people,
-        items: totalItems,
-      });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
+  try {
+    const people = await Person.find({ userId: userId.toString() });
+    res.status(200).json({
+      message: "People retrieved successfully.",
+      people: people,
     });
+  } catch (error) {
+    next(error);
+  }
 };
 
+exports.getPerson = async (req, res, next) => {
+  const personId = req.params.personId;
+  const userId = req.userId;
+  try {
+    const person = await Person.findById(personId);
+    if (!person) {
+      const error = new Error("Could not find person.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (person.userId.toString() !== userId.toString()) {
+      const error = new Error("You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    res.status(200).json({
+      message: "Person retrieved successfully.",
+      person: person,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**CHECK IF FACE ALREADY EXISTS???**/
 exports.createPerson = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -50,7 +61,7 @@ exports.createPerson = async (req, res, next) => {
     return next(error);
   }
   if (!req.files) {
-    const error = new Error("No image provided.");
+    const error = new Error("Please insert an image.");
     error.statusCode = 422;
     return next(error);
   }
@@ -95,7 +106,7 @@ exports.createPerson = async (req, res, next) => {
       name: name,
       description: description,
       imageUrl: imageUrl,
-      user: userId,
+      userId: userId.toString(),
       imageId: fileId,
       faceId: faceId,
       doNotify: doNotify,
@@ -111,29 +122,6 @@ exports.createPerson = async (req, res, next) => {
     await s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
     return next(err);
   }
-};
-
-exports.getPerson = (req, res, next) => {
-  const personId = req.params.personId;
-  const userId = req.params.userId;
-  Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then((person) => {
-      if (person.length == 0) {
-        const error = new Error("Could not find person.");
-        error.statusCode = 404;
-        throw error;
-      }
-      res.status(200).json({
-        message: "Success!",
-        person: person,
-      });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
-    });
 };
 
 exports.updatePerson = (req, res, next) => {

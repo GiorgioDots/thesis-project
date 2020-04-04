@@ -15,7 +15,7 @@ const personSchema = new Schema(
     description: {
       type: String,
     },
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -37,7 +37,7 @@ const personSchema = new Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 module.exports = mongoose.model("Person", personSchema);
