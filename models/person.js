@@ -12,11 +12,10 @@ const personSchema = new Schema(
       type: String,
       required: true,
     },
-    degree: {
+    description: {
       type: String,
-      required: true,
     },
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -25,12 +24,8 @@ const personSchema = new Schema(
       type: String,
       required: true,
     },
-    imageName: {
+    imageId: {
       type: String,
-      required: true,
-    },
-    doCount: {
-      type: Boolean,
       required: true,
     },
     counter: {
@@ -42,7 +37,7 @@ const personSchema = new Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 module.exports = mongoose.model("Person", personSchema);
