@@ -33,6 +33,7 @@ wiFiSSID: String
 wifiPassword: String
 raspiPassword: String
 lastImages: [String]
+userId: ref to User, required
 createdAt: Date,
 updatedAt: Date
 ```

@@ -64,9 +64,7 @@ exports.login = async (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
   try {
-    const user = await User.findOne({ email: email })
-      .populate("events")
-      .populate("people");
+    const user = await User.findOne({ email: email });
     if (!user) {
       const error = new Error("Wrong username or password.");
       error.statusCode = 422;
@@ -91,11 +89,7 @@ exports.login = async (req, res, next) => {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
-        plantStatus: user.plantStatus,
-        raspberries: user.raspberries,
-        people: user.people,
-        events: user.events,
-        telegramIds: user.telegramIds,
+        plantStatus: user.plantStatus
       },
       token: token,
     });
