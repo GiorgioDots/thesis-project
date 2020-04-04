@@ -41,7 +41,8 @@ mongoose
   .connect(process.env.MONGO_SRV, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useCreateIndex: true
+    useCreateIndex: true,
+    useFindAndModify: false
   })
   .then(result => {
     logger.info('Connected to mongodb');
