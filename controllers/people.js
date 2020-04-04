@@ -20,7 +20,6 @@ exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
   const perPage = +req.query.perPage || 10;
   const currentPage = req.query.page || 1;
-  
   try {
     const totalPeople = await Person.find({
       userId: userId.toString(),
