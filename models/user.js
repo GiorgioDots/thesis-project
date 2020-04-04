@@ -1,50 +1,51 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
   {
-    telegramId: {
-      type: String,
-      required: true
-    },
+    telegramId: [String],
     name: {
       type: String,
-      required: true
+      required: true,
     },
-    raspiConfigs: [
+    raspberries: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'RaspiConfig'
-      }
+        ref: "Raspberry",
+      },
     ],
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     people: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'Person'
-      }
+        ref: "Person",
+      },
     ],
     events: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'Event'
-      }
+        ref: "Event",
+      },
     ],
     password: {
       type: String,
-      required: true
+      required: true,
     },
     collectionId: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
+    plantStatus: {
+      type: String,
+      default: "offline",
+    },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);
