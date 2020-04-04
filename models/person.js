@@ -12,9 +12,8 @@ const personSchema = new Schema(
       type: String,
       required: true,
     },
-    degree: {
+    description: {
       type: String,
-      required: true,
     },
     user: {
       type: Schema.Types.ObjectId,
@@ -25,12 +24,8 @@ const personSchema = new Schema(
       type: String,
       required: true,
     },
-    imageName: {
+    imageId: {
       type: String,
-      required: true,
-    },
-    doCount: {
-      type: Boolean,
       required: true,
     },
     counter: {

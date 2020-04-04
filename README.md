@@ -36,4 +36,29 @@ lastImages: [String]
 createdAt: Date,
 updatedAt: Date
 ```
+
 For `lastImages`, the strings are the object id inside AWS S3, their format is like `UNIQUE_ID.jpg`.
+
+# Event
+
+```yaml
+person: reference to Person, required
+user: reference to User, required
+description: String, required
+imageName: String required
+imageUrl: String, required
+raspiId: String, required
+```
+
+# Person
+
+```yaml
+name: String, required
+imageUrl: String, required
+description: String
+user: reference to User, required
+faceId: String ,required
+imageId: String, required
+counter: Number, default 0
+doNotify: Boolean, required
+```
