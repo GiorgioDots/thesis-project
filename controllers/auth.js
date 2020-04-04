@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const RaspiConfig = require('../models/raspiConfig');
+const RaspiConfig = require('../models/raspberry');
 
 const logger = require('../utils/logger');
 const { createCollectionSync } = require('../utils/aws');
@@ -31,7 +31,7 @@ exports.signup = async (req, res, next) => {
       email: req.body.email,
       password: hashedPw,
       name: req.body.name,
-      telegramId: req.body.telegramId,
+      telegramId: [req.body.telegramId],
       raspiConfigs: [raspiConfig._id.toString()],
       collectionId: collectionId
     });
