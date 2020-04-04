@@ -12,7 +12,6 @@ const {
 const { saveFileSync } = require("../utils/fs");
 const fs = require("fs");
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
-const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
 exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
@@ -102,6 +101,13 @@ exports.createPerson = async (req, res, next) => {
       throw error;
     }
     const faceId = faceRecords[0].Face.FaceId;
+    const usersPeople = await Person.find({ userId: userId });
+    const faceIdExists = usersPeople.find((person) => person.faceId === faceId);
+    if (faceIdExists) {
+      const error = new Error("This person is already created.");
+      error.statusCode = 422;
+      throw error;
+    }
     const person = new Person({
       name: name,
       description: description,
