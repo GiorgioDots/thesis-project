@@ -2,7 +2,7 @@
 
 ```yaml
 _id: ObjectId, Unique
-telegramId: Array of String
+telegramIds: Array of String
 name: String, required
 raspberries: Array of References to Raspberry
 email: String, required, unique

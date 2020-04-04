@@ -1,11 +1,11 @@
-const Telegraf = require('telegraf');
+const Telegraf = require("telegraf");
 
-const logger = require('../utils/logger');
+const logger = require("../utils/logger");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.telegram.setWebhook(process.env.HEROKU_URL);
 
-bot.command('/start', msg => {
+bot.command("/start", (msg) => {
   msg.reply(`Your id: ${msg.update.message.from.id}`);
 });
 

@@ -3,7 +3,7 @@ const { validationResult } = require("express-validator");
 
 const logger = require("../utils/logger");
 const User = require("../models/user");
-const RaspiConfig = require("../models/raspiConfig");
+const RaspiConfig = require("../models/raspberry");
 
 exports.getRaspiConfigs = async (req, res, next) => {
   const userId = req.userId;

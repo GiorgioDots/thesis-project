@@ -4,14 +4,14 @@ const { sendEvent } = require('../utils/telegram-bot');
 const User = require('../models/user');
 const Event = require('../models/event');
 const Person = require('../models/person');
-const RaspiConfig = require('../models/raspiConfig');
+const RaspiConfig = require('../models/raspberry');
 
 const {
   s3UploadFileSync,
   searchFacesByImage,
   s3DeleteFileSync
 } = require('../utils/aws');
-const { saveFileSync } = require('../helpers/fs');
+const { saveFileSync } = require('../utils/fs');
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
 module.exports.createEvent = (req, res, next) => {

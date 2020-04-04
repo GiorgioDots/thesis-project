@@ -9,7 +9,7 @@ const {
   addFaceInCollectionSync,
   deleteFaceFromCollectionSync
 } = require('../utils/aws');
-const { saveFileSync } = require('../helpers/fs');
+const { saveFileSync } = require('../utils/fs');
 const fs = require('fs');
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
