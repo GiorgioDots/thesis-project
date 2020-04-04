@@ -20,19 +20,19 @@ exports.updateUser = async (req, res, next) => {
   const email = req.body.email;
   try {
     const user = await User.findById(userId);
-    if (name) {
+    if (typeof name === "string") {
       if (user.name != name) {
         user.name = name;
         isModified = true;
       }
     }
-    if (telegramId) {
+    if (typeof telegramId === "string") {
       if (user.telegramId != telegramId) {
         user.telegramId = telegramId;
         isModified = true;
       }
     }
-    if (password) {
+    if (typeof password === "string") {
       const isEqual = await bcrypt.compare(password, user.password);
       if (!isEqual) {
         const salt = await bcrypt.genSalt(12);
@@ -40,7 +40,7 @@ exports.updateUser = async (req, res, next) => {
         isModified = true;
       }
     }
-    if (email) {
+    if (typeof email === "string") {
       if (user.email !== email) {
         const exists = await User.exists({ email: email });
         if (exists) {
