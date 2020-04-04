@@ -10,7 +10,7 @@ router.get("/", isAuth, peopleController.getPeople);
 
 router.get("/:personId", isAuth, peopleController.getPerson);
 
-router.put(
+router.post(
   "/",
   isAuth,
   [
@@ -29,7 +29,7 @@ router.put(
   peopleController.createPerson
 );
 
-router.post(
+router.put(
   "/:personId",
   isAuth,
   [
