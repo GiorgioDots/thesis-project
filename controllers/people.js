@@ -1,16 +1,16 @@
-const { validationResult } = require('express-validator');
-const uuid = require('uuid');
-const Person = require('../models/person');
-const User = require('../models/user');
-const Event = require('../models/event');
+const { validationResult } = require("express-validator");
+const uuid = require("uuid");
+const Person = require("../models/person");
+const User = require("../models/user");
+const Event = require("../models/event");
 const {
   s3DeleteFileSync,
   s3UploadFileSync,
-  addFaceInCollectionSync,
-  deleteFaceFromCollectionSync
-} = require('../utils/aws');
-const { saveFileSync } = require('../utils/fs');
-const fs = require('fs');
+  indexFacesSync,
+  deleteFacesFromCollectionSync,
+} = require("../utils/aws");
+const { saveFileSync } = require("../utils/fs");
+const fs = require("fs");
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
@@ -18,22 +18,22 @@ exports.getPeople = (req, res, next) => {
   let totalItems;
   const userId = req.userId;
   if (!userId) {
-    next(Error('UserId undefined'));
+    next(Error("UserId undefined"));
   }
   Person.find({ user: userId })
     .countDocuments()
-    .then(count => {
+    .then((count) => {
       totalItems = count;
       return Person.find({ user: userId });
     })
-    .then(people => {
+    .then((people) => {
       res.status(200).json({
-        message: 'Success!',
+        message: "Success!",
         people: people,
-        items: totalItems
+        items: totalItems,
       });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -41,96 +41,94 @@ exports.getPeople = (req, res, next) => {
     });
 };
 
-exports.createPerson = (req, res, next) => {
-  if (!req.files) {
-    const error = new Error('No image provided.');
+exports.createPerson = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed.");
     error.statusCode = 422;
-    throw error;
+    error.errors = errors.array();
+    return next(error);
   }
-  let file = req.files.image;
-  let name = req.query.name;
-  let degree = req.query.degree;
-  let userId = req.query.userId;
-  let doCount = req.query.doCount;
-  let doNotify = req.query.doNotify;
-  let imageUrl;
-  let person;
-  let fileUrl;
-  let user;
+  if (!req.files) {
+    const error = new Error("No image provided.");
+    error.statusCode = 422;
+    return next(error);
+  }
+  const file = req.files.image;
+  const name = req.body.name;
+  const doNotify = req.body.doNotify;
+  let description = req.body.description;
+  if (!description) {
+    description = "";
+  }
+  const userId = req.userId;
   const fileId = `${uuid()}.jpg`;
-  const fileName = `./tmp/${fileId}`;
-  saveFileSync(file, fileName)
-    .then(fileName => {
-      return s3UploadFileSync(
-        fs.readFileSync(fileName),
-        fileId,
-        AWS_PEOPLE_BKTNAME
-      );
-    })
-    .then(url => {
-      fs.unlinkSync(fileName);
-      return Promise.resolve(url);
-    })
-    .then(url => {
-      fileUrl = url;
-      return User.findById(userId);
-    })
-    .then(userResult => {
-      user = userResult;
-      return addFaceInCollectionSync(
-        user.collectionId,
-        fileId,
-        AWS_PEOPLE_BKTNAME
-      );
-    })
-    .then(faceId => {
-      imageUrl = fileUrl;
-      person = new Person({
-        name: name,
-        degree: degree,
-        imageUrl: imageUrl,
-        user: userId,
-        imageName: fileId,
-        faceId: faceId,
-        doCount: doCount,
-        doNotify: doNotify
-      });
-      return person.save();
-    })
-    .then(result => {
-      user.people.push(person);
-      return user.save();
-    })
-    .then(result => {
-      res.status(201).json({
-        message: 'Person created successfully!',
-        person: person
-      });
-    })
-    .catch(error => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
+  const filePath = `./tmp/${fileId}`;
+  try {
+    await saveFileSync(file, filePath);
+    const imageUrl = await s3UploadFileSync(
+      fs.readFileSync(filePath),
+      fileId,
+      AWS_PEOPLE_BKTNAME
+    );
+    fs.unlinkSync(filePath);
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new Error("User not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    const faceRecords = await indexFacesSync(
+      user.collectionId,
+      fileId,
+      AWS_PEOPLE_BKTNAME
+    );
+    if (faceRecords.length > 1) {
+      const faceIds = faceRecords.map((face) => face.Face.FaceId);
+      await deleteFacesFromCollectionSync(user.collectionId, faceIds);
+      const error = new Error("Please, only one person per photo.");
+      error.statusCode = 422;
+      throw error;
+    }
+    const faceId = faceRecords[0].Face.FaceId;
+    const person = new Person({
+      name: name,
+      description: description,
+      imageUrl: imageUrl,
+      user: userId,
+      imageId: fileId,
+      faceId: faceId,
+      doNotify: doNotify,
     });
+    await person.save();
+    user.people.push(person);
+    await user.save();
+    res.status(201).json({
+      message: "Person created successfully.",
+      person: person,
+    });
+  } catch (err) {
+    await s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
+    return next(err);
+  }
 };
 
 exports.getPerson = (req, res, next) => {
   const personId = req.params.personId;
   const userId = req.params.userId;
   Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then(person => {
+    .then((person) => {
       if (person.length == 0) {
-        const error = new Error('Could not find person.');
+        const error = new Error("Could not find person.");
         error.statusCode = 404;
         throw error;
       }
       res.status(200).json({
-        message: 'Success!',
-        person: person
+        message: "Success!",
+        person: person,
       });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -146,9 +144,9 @@ exports.updatePerson = (req, res, next) => {
   const doCount = req.query.doCount;
   const doNotify = req.query.doNotify;
   Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then(result => {
+    .then((result) => {
       if (result.length == 0) {
-        throw new Error('Coult not find person');
+        throw new Error("Coult not find person");
       }
       const person = result[0];
 
@@ -166,52 +164,48 @@ exports.updatePerson = (req, res, next) => {
         let imageUrl;
         let collectionId;
         return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME)
-          .then(done => {
+          .then((done) => {
             if (!done) {
               throw new Error("Couldn't delete image");
             }
             return saveFileSync(file, fileName);
           })
-          .then(fileName => {
+          .then((fileName) => {
             return s3UploadFileSync(
               fs.readFileSync(fileName),
               fileId,
               AWS_PEOPLE_BKTNAME
             );
           })
-          .then(imageUrlRes => {
+          .then((imageUrlRes) => {
             fs.unlinkSync(fileName);
             imageUrl = imageUrlRes;
             return User.findById(userId);
           })
-          .then(user => {
+          .then((user) => {
             collectionId = user.collectionId;
-            return deleteFaceFromCollectionSync(collectionId, person.faceId);
+            return deleteFacesFromCollectionSync(collectionId, person.faceId);
           })
-          .then(result => {
-            return addFaceInCollectionSync(
-              collectionId,
-              fileId,
-              AWS_PEOPLE_BKTNAME
-            );
+          .then((result) => {
+            return indexFacesSync(collectionId, fileId, AWS_PEOPLE_BKTNAME);
           })
-          .then(faceId => {
+          .then((faceId) => {
             person.imageUrl = imageUrl;
             person.imageName = fileId;
             person.faceId = faceId;
             return person.save();
           })
-          .catch(error => {
+          .catch((error) => {
             s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
             throw error;
           });
       }
       return person.save();
     })
-    .then(result => {
-      res.status(200).json({ message: 'Person updated!', person: result });
+    .then((result) => {
+      res.status(200).json({ message: "Person updated!", person: result });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -225,46 +219,46 @@ exports.deletePerson = (req, res, next) => {
   let faceId;
   let collectionId;
   Person.find({ $and: [{ user: userId }, { _id: personId }] })
-    .then(result => {
+    .then((result) => {
       if (result.length == 0) {
-        throw new Error('Coult not find person');
+        throw new Error("Coult not find person");
       }
       const person = result[0];
       return s3DeleteFileSync(person.imageName, AWS_PEOPLE_BKTNAME);
     })
-    .then(done => {
+    .then((done) => {
       if (!done) {
         throw new Error("Couldn't delete image");
       }
       return Person.findByIdAndRemove(personId);
     })
-    .then(result => {
+    .then((result) => {
       faceId = result.faceId;
       return User.findById(userId);
     })
-    .then(user => {
+    .then((user) => {
       collectionId = user.collectionId;
       user.people.pull(personId);
       return user.save();
     })
-    .then(result => {
+    .then((result) => {
       user = result;
-      return deleteFaceFromCollectionSync(collectionId, faceId);
+      return deleteFacesFromCollectionSync(collectionId, faceId);
     })
-    .then(result => {
+    .then((result) => {
       return Event.find({ person: personId });
     })
-    .then(result => {
+    .then((result) => {
       for (event of result) {
         s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
         user.events.pull(event._id); //events of events?
       }
       return user.save();
     })
-    .then(result => {
-      return res.status(200).json({ message: 'Person deleted' });
+    .then((result) => {
+      return res.status(200).json({ message: "Person deleted" });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
