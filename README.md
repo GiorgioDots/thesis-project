@@ -28,7 +28,7 @@ _id: ObjectId, Unique
 raspiId: String, required, unique
 resolution: String, default "1280x720", options ("1920x1080", "1280x720", "640x480")
 confidence: Number, default 50, min 1, max 99
-isActivated: Boolean, default true
+isActive: Boolean, default true
 wifiSSID: String
 wifiPassword: String
 raspiPassword: String
