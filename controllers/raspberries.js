@@ -179,7 +179,7 @@ exports.updateRaspberry = async (req, res, next) => {
     if (isModified) {
       raspberry = await raspberry.save();
       try {
-        const wsResponse = await request.post(
+        await request.post(
           `${process.env.WS_CONTROLLER_URL}/raspberry/${raspiId}/restart`
         );
         message = "Updated successfully.";
