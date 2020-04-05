@@ -177,8 +177,18 @@ exports.updateRaspberry = async (req, res, next) => {
     }
     let message = "Nothing changed.";
     if (isModified) {
-      message = "Updated successfully.";
       raspberry = await raspberry.save();
+      try {
+        const wsResponse = await request.post(
+          `${process.env.WS_CONTROLLER_URL}/raspberry/${raspiId}/restart`
+        );
+        message = "Updated successfully.";
+      } catch (error) {
+        if (error.statusCode === 404) {
+          message =
+            "Updated, but the raspberry isn't connected to the internet. Please check its connection.";
+        }
+      }
     }
     res.status(200).json({
       message: message,
