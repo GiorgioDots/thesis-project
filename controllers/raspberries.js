@@ -199,6 +199,28 @@ exports.updateRaspberry = async (req, res, next) => {
   }
 };
 
+exports.deleteRaspberry = async (req, res, next) => {
+  const raspiId = req.params.raspiId;
+  const userId = req.userId;
+  try {
+    const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (!raspberry) {
+      const error = new Error("Raspberry not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (raspberry.userId !== userId.toString()) {
+      const error = new Error("You are not the creator of this raspberry.");
+      error.statusCode = 401;
+      throw error;
+    }
+    await Raspberry.findOneAndRemove({ raspiId: raspiId });
+    res.status(200).json({ message: "Success." });
+  } catch (err) {
+    return next(err);
+  }
+};
+
 //old
 
 exports.getRaspiConfigs = async (req, res, next) => {
