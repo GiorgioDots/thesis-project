@@ -19,7 +19,7 @@ const raspberrySchema = new Schema(
       min: 1,
       max: 99,
     },
-    isActivated: {
+    isActive: {
       type: Boolean,
       default: true,
     },
