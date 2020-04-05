@@ -60,6 +60,8 @@ router.put(
   raspberryController.updateRaspberry
 );
 
+router.delete('/:raspiId', isAuth, raspberryController.deleteRaspberry)
+
 // router.post("/signup", [
 //   body("raspiId")
 //     .notEmpty()
