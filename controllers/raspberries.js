@@ -3,7 +3,47 @@ const { validationResult } = require("express-validator");
 
 const logger = require("../utils/logger");
 const User = require("../models/user");
-const RaspiConfig = require("../models/raspberry");
+const Raspberry = require("../models/raspberry");
+
+exports.createRaspberry = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed.");
+    error.statusCode = 422;
+    error.errors = errors.array();
+    return next(error);
+  }
+  const raspiId = req.body.raspiId;
+  const resolution = req.body.resolution;
+  const confidence = req.body.confidence;
+  const wifiSSID = req.body.wifiSSID || "";
+  const wifiPassword = req.body.wifiPassword || "";
+  const userId = req.userId;
+  const newRaspberry = new Raspberry({
+    raspiId: raspiId,
+    resolution: resolution,
+    confidence: confidence,
+    wifiSSID: wifiSSID,
+    wifiPassword: wifiPassword,
+    userId: userId,
+  });
+  try {
+    const user = await User.findById(userId.toString());
+    console.log(user);
+    if (!user) {
+      const error = new Error("User not found.");
+      error.statusCode = 422;
+      throw error;
+    }
+    const raspberry = await newRaspberry.save();
+    user.raspberries.push(raspberry);
+    console.log(user)
+    await user.save();
+    res.status(201).json({ raspberry: raspberry });
+  } catch (err) {
+    return next(err);
+  }
+};
 
 exports.getRaspiConfigs = async (req, res, next) => {
   const userId = req.userId;
@@ -27,7 +67,7 @@ module.exports.getRaspiConfig = async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).populate("raspiConfigs");
     const configs = user.raspiConfigs;
-    const config = configs.find(cfg => cfg._id.toString() === configId);
+    const config = configs.find((cfg) => cfg._id.toString() === configId);
     if (!config) {
       const error = new Error("RaspiConfig not found.");
       error.statusCode = 404;
@@ -61,7 +101,9 @@ module.exports.updateRaspiConfig = async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).populate("raspiConfigs");
     const configs = user.raspiConfigs;
-    const isConfigOwner = configs.find(cfg => cfg._id.toString() === configId);
+    const isConfigOwner = configs.find(
+      (cfg) => cfg._id.toString() === configId
+    );
     if (!isConfigOwner) {
       const error = new Error("RaspiConfig not found.");
       error.statusCode = 404;
@@ -94,8 +136,8 @@ module.exports.updateRaspiConfig = async (req, res, next) => {
           json: {
             resolution: config.resolution,
             confidence: config.confidence,
-            raspiId: config.raspiId
-          }
+            raspiId: config.raspiId,
+          },
         });
       } catch (error) {
         message =
