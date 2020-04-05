@@ -11,7 +11,7 @@ const authRoutes = require('./routes/auth');
 const peopleRoutes = require('./routes/people');
 const userRoutes = require('./routes/user');
 const eventsRoutes = require('./routes/events');
-const raspiConfigRoutes = require('./routes/raspiConfig');
+const raspberryRoutes = require('./routes/raspberry');
 
 const { bot, botController } = require('./utils/telegram-bot');
 const logger = require('./utils/logger');
@@ -28,7 +28,7 @@ app.use('/auth', authRoutes);
 app.use('/people', peopleRoutes);
 app.use('/user', userRoutes);
 app.use('/events', eventsRoutes);
-app.use('/raspi', raspiConfigRoutes);
+app.use('/raspberry', raspberryRoutes);
 app.get('/healthcheck', (req, res, next) => {
   res.status(200).json({ status: 'ok' });
   next();

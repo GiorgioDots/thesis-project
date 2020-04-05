@@ -23,7 +23,7 @@ const raspberrySchema = new Schema(
       type: Boolean,
       default: true,
     },
-    wiFiSSID: String,
+    wifiSSID: String,
     wifiPassword: String,
     raspiPassword: String,
     lastImages: [String],
