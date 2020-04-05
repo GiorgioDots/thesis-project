@@ -25,11 +25,10 @@ exports.createRaspberry = async (req, res, next) => {
     confidence: confidence,
     wifiSSID: wifiSSID,
     wifiPassword: wifiPassword,
-    userId: userId,
+    userId: userId.toString(),
   });
   try {
     const user = await User.findById(userId.toString());
-    console.log(user);
     if (!user) {
       const error = new Error("User not found.");
       error.statusCode = 422;
@@ -37,13 +36,88 @@ exports.createRaspberry = async (req, res, next) => {
     }
     const raspberry = await newRaspberry.save();
     user.raspberries.push(raspberry);
-    console.log(user)
     await user.save();
-    res.status(201).json({ raspberry: raspberry });
+    res.status(201).json({
+      message: "Raspberry created successfully.",
+      raspberry: {
+        raspiId: raspberry.raspiId,
+        resolution: raspberry.resolution,
+        confidence: raspberry.confidence,
+        isActivated: raspberry.isActivated,
+        wifiPassword: raspberry.wifiPassword,
+        wifiSSID: raspberry.wifiSSID,
+        lastImages: raspberry.lastImages,
+        createdAt: new Date(raspberry.createdAt).toISOString(),
+        updatedAt: new Date(raspberry.updatedAt).toISOString(),
+      },
+    });
   } catch (err) {
     return next(err);
   }
 };
+
+exports.getRaspberries = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const foundRaspberries = await Raspberry.find({
+      userId: userId.toString(),
+    });
+    const responseRaspberries = foundRaspberries.map((rasp) => {
+      return {
+        raspiId: rasp.raspiId,
+        resolution: rasp.resolution,
+        confidence: rasp.confidence,
+        isActivated: rasp.isActivated,
+        wifiPassword: rasp.wifiPassword,
+        wifiSSID: rasp.wifiSSID,
+        lastImages: rasp.lastImages,
+        createdAt: new Date(rasp.createdAt).toISOString(),
+        updatedAt: new Date(rasp.updatedAt).toISOString(),
+      };
+    });
+    res
+      .status(200)
+      .json({ message: "Success.", raspberries: responseRaspberries });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+exports.getRaspberry = async (req, res, next) => {
+  const raspiId = req.params.raspiId;
+  const userId = req.userId;
+  try {
+    const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (!raspberry) {
+      const error = new Error("Raspberry not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (raspberry.userId !== userId.toString()) {
+      const error = new Error("You are not the creator of this raspberry.");
+      error.statusCode = 401;
+      throw error;
+    }
+    res.status(200).json({
+      message: "Success.",
+      raspberry: {
+        raspiId: raspberry.raspiId,
+        resolution: raspberry.resolution,
+        confidence: raspberry.confidence,
+        isActivated: raspberry.isActivated,
+        wifiPassword: raspberry.wifiPassword,
+        wifiSSID: raspberry.wifiSSID,
+        lastImages: raspberry.lastImages,
+        createdAt: new Date(raspberry.createdAt).toISOString(),
+        updatedAt: new Date(raspberry.updatedAt).toISOString(),
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+//old
 
 exports.getRaspiConfigs = async (req, res, next) => {
   const userId = req.userId;
