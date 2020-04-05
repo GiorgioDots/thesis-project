@@ -19,14 +19,18 @@ const raspberrySchema = new Schema(
       min: 1,
       max: 99,
     },
-    isActivated: {
+    isActive: {
       type: Boolean,
       default: true,
     },
-    wiFiSSID: String,
+    wifiSSID: String,
     wifiPassword: String,
     raspiPassword: String,
     lastImages: [String],
+    userId: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true, versionKey: false }
 );
