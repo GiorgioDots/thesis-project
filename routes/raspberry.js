@@ -1,7 +1,7 @@
 const express = require("express");
 const { body } = require("express-validator");
 
-const raspiConfigController = require("../controllers/raspberries");
+const raspberryController = require("../controllers/raspberries");
 const isAuth = require("../middleware/is-auth");
 const Raspberry = require("../models/raspberry");
 
@@ -26,17 +26,18 @@ router.post(
       .isString()
       .custom((value) => {
         return Raspberry.findOne({ raspiId: value }).then((raspExists) => {
-          console.log(raspExists);
           if (raspExists) {
             return Promise.reject("Raspberry already exists.");
           }
         });
       }),
   ],
-  raspiConfigController.createRaspberry
+  raspberryController.createRaspberry
 );
 
-// router.get("/", isAuth, raspiConfigController.getRaspberries);
+router.get("/", isAuth, raspberryController.getRaspberries);
+
+router.get("/:raspiId", isAuth, raspberryController.getRaspberry);
 
 // router.post("/signup", [
 //   body("raspiId")
@@ -52,9 +53,9 @@ router.post(
 // ]);
 
 /*OLD */
-router.get("/config", isAuth, raspiConfigController.getRaspiConfigs);
+router.get("/config", isAuth, raspberryController.getRaspiConfigs);
 
-router.get("/config/:configId", isAuth, raspiConfigController.getRaspiConfig);
+router.get("/config/:configId", isAuth, raspberryController.getRaspiConfig);
 
 router.put(
   "/config/:configId",
@@ -68,7 +69,7 @@ router.put(
       .optional({ nullable: true, checkFalsy: true })
       .custom((value) => resolutions.includes(value)),
   ],
-  raspiConfigController.updateRaspiConfig
+  raspberryController.updateRaspiConfig
 );
 
 module.exports = router;
