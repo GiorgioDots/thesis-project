@@ -18,6 +18,7 @@ router.post(
       .isNumeric()
       .custom((value) => value < 100 && value > 0),
     body("resolution")
+      .optional()
       .custom((value) => resolutions.includes(value))
       .withMessage('Resolution must be "1920x1080", "1280x720" or "640x480".'),
     body("raspiId")
@@ -38,6 +39,26 @@ router.post(
 router.get("/", isAuth, raspberryController.getRaspberries);
 
 router.get("/:raspiId", isAuth, raspberryController.getRaspberry);
+
+router.put(
+  "/:raspiId",
+  isAuth,
+  [
+    body("confidence", "Confidence must be a number between 0 and 100.")
+      .optional()
+      .isNumeric()
+      .custom((value) => value < 100 && value > 0),
+    body("resolution")
+      .optional()
+      .custom((value) => resolutions.includes(value))
+      .withMessage('Resolution must be "1920x1080", "1280x720" or "640x480".'),
+    body("isActive")
+      .optional()
+      .isBoolean()
+      .withMessage("isActive must be true or false."),
+  ],
+  raspberryController.updateRaspberry
+);
 
 // router.post("/signup", [
 //   body("raspiId")
