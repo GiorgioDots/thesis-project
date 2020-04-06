@@ -1,6 +1,7 @@
 const uuid = require("uuid");
 const fs = require("fs");
 const emoji = require("node-emoji");
+const request = require("request-promise-native");
 
 const {
   s3UploadFileSync,
@@ -31,7 +32,6 @@ exports.createEvent = async (req, res, next) => {
   }
   const fileId = `${uuid.v4()}.jpg`;
   const fileName = `./tmp/${fileId}`;
-  let isCreated = false;
   let eventDescription;
   try {
     await saveFileSync(req.files.image, fileName);
@@ -50,47 +50,91 @@ exports.createEvent = async (req, res, next) => {
       fs.readFileSync(fileName)
     );
     fs.unlinkSync(fileName);
-    if (searchResult.code == "NO_FACES_DETECTED") {
-      eventDescription = "Something unknown triggered the system.";
+    let newEvent;
+    let doNotify = true;
+    if (searchResult.code == "NO_FACE_DETECTED") {
+      eventDescription = `Something/someone unknown detected.`;
+      newEvent = new Event({
+        description: eventDescription,
+        userId: user._id,
+        imageName: fileId,
+        imageUrl: imageUrl,
+        raspiId: raspberry.raspiId,
+      });
+    } else if (searchResult.code == "FACE_DETECTED") {
+      const person = await Person.findOne({
+        faceId: searchResult.data.Face.FaceId,
+      });
+      if (!person) {
+        eventDescription = `An unknown person detected.`;
+        newEvent = new Event({
+          description: eventDescription,
+          userId: user._id,
+          imageName: fileId,
+          imageUrl: imageUrl,
+          raspiId: raspberry.raspiId,
+        });
+      } else {
+        eventDescription = `${
+          person.name
+        } was found with a ${searchResult.data.Similarity.toFixed(
+          2
+        )}% of confidence.`;
+        newEvent = new Event({
+          person: person,
+          description: eventDescription,
+          userId: user._id,
+          imageName: fileId,
+          imageUrl: imageUrl,
+          raspiId: raspberry.raspiId,
+        });
+        person.counter++;
+        await person.save();
+        doNotify = person.doNotify;
+      }
+    }
+    let isCreated = false;
+    const event = await newEvent.save();
+    isCreated = true;
+    if (doNotify) {
       const warningEmoji = emoji.get("warning");
       sendMail(
         user.email,
         `RaspiFace - New Event! ${warningEmoji} ${warningEmoji} ${warningEmoji}`,
-        `<b>${eventDescription}</b>` //generate correct html
+        `<h1>Raspberry: ${raspberry.raspiId}</h1><b>${eventDescription}</b>` //generate correct html with the image
       );
       for (telegramId of user.telegramIds) {
-        sendEvent(eventDescription, imageUrl, telegramId);
+        sendEvent(
+          `Raspberry: ${raspberry.raspiId} - ${eventDescription}`,
+          imageUrl,
+          telegramId
+        );
       }
-      isCreated = true;
     }
-    throw new Error(eventDescription);
-    if (faceMatch.length > 0) {
-      const person = await Person.findOne({ faceId: faceMatch[0].Face.FaceId });
-      eventDescription = `Person: ${person.name}; - Degree: ${person.degree}; Detected!`;
-      if (person.doCount) {
-        person.counter++;
-      }
-      await person.save();
-      event = new Event({
-        person: person._id,
-        description: eventDescription,
-        user: user._id,
-        imageName: fileId,
-        imageUrl: imageUrl,
-      });
-      if (person.doNotify) {
-        sendEvent(eventDescription, imageUrl, user.telegramId);
-      }
-      const savedEvent = await event.save();
-      user.events.push(savedEvent._id);
-      await user.save();
-    } else {
-      eventDescription = "Unknown person detected!";
-      await sendEvent(eventDescription, imageUrl, user.telegramId);
-    }
+
+    request.post(`${process.env.WS_CONTROLLER_URL}/event`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user._id.toString(),
+        event: {
+          person: event.person,
+          description: event.description,
+          imageUrl: event.imageUrl,
+          raspiId: event.raspiId,
+          createdAt: new Date(event.createdAt).toISOString(),
+        },
+      }),
+    });
+
     res.status(200).json({
-      message: "Event created",
-      event: event,
+      message: "Event created successfully.",
+      event: {
+        person: event.person,
+        description: event.description,
+        imageUrl: event.imageUrl,
+        raspiId: event.raspiId,
+        createdAt: new Date(event.createdAt).toISOString(),
+      },
     });
   } catch (error) {
     if (fs.existsSync(fileName)) {

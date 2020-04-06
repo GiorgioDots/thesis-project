@@ -114,17 +114,19 @@ exports.searchFacesByImage = (collectionId, bkt_name, file) => {
       if (err) {
         switch (err.code) {
           case "InvalidParameterException":
-            resolve({ code: "NO_FACES_DETECTED" });
+            resolve({ code: "NO_FACE_DETECTED" });
+            break;
         }
         return;
       }
-      // if (data) {
-      //   resolve(data.FaceMatches);
-      // } else {
-      //   resolve([]);
-      // }
-      console.log(data);
-      resolve(data);
+      if (data.FaceMatches.length > 0) {
+        resolve({ code: "FACE_DETECTED", data: data.FaceMatches[0] });
+        return;
+      }
+      if (data.FaceMatches.length <= 0) {
+        resolve({ code: "NO_FACE_DETECTED" });
+        return;
+      }
     });
   });
 };

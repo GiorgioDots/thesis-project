@@ -36,8 +36,8 @@ For `lastImages`, the strings are the object id inside AWS S3, their format is l
 # Event
 
 ```yaml
-person: reference to Person, required
-user: reference to User, required
+person: reference to Person
+userId: reference to User, required
 description: String, required
 imageName: String required
 imageUrl: String, required

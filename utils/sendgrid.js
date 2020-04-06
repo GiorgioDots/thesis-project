@@ -10,7 +10,6 @@ const transporter = nodemailer.createTransport(
 );
 
 module.exports = async (to, subject, html) => {
-  console.log(to);
   try {
     await transporter.sendMail({
       to: to,
@@ -18,7 +17,6 @@ module.exports = async (to, subject, html) => {
       subject: subject,
       html: html,
     });
-    console.log("email sent");
   } catch (err) {
     throw err;
   }
