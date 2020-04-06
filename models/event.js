@@ -6,10 +6,9 @@ const eventSchema = new Schema(
   {
     person: {
       type: Schema.Types.ObjectId,
-      ref: "Person",
-      required: true,
+      ref: "Person"
     },
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,

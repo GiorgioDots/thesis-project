@@ -62,6 +62,24 @@ exports.s3DeleteFileSync = (objName, bkt_name) => {
   });
 };
 
+exports.s3DeleteFilesSync = (objNames, bkt_name) => {
+  const params = {
+    Bucket: bkt_name,
+    Delete: {
+      Objects: objNames,
+    },
+  };
+  return new Promise((resolve, reject) => {
+    s3.deleteObjects(params, (err, data) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(data);
+    });
+  });
+};
+
 exports.deleteFacesFromCollectionSync = (collectionId, faceIds) => {
   const params = {
     CollectionId: collectionId,
@@ -94,11 +112,6 @@ exports.indexFacesSync = (collectionId, fileId, bkt_name) => {
         reject(error);
         return;
       }
-      // if (data.FaceRecords.length > 1) {
-      //   reject(new Error("Please, only one person per photo!"));
-      //   return;
-      // }
-      // resolve(data.FaceRecords[0].Face.FaceId);
       resolve(data.FaceRecords);
     });
   });
@@ -117,13 +130,20 @@ exports.searchFacesByImage = (collectionId, bkt_name, file) => {
   return new Promise((resolve, reject) => {
     rekognition.searchFacesByImage(params, (err, data) => {
       if (err) {
-        reject(err);
+        switch (err.code) {
+          case "InvalidParameterException":
+            resolve({ code: "NO_FACE_DETECTED" });
+            break;
+        }
         return;
       }
-      if (data) {
-        resolve(data.FaceMatches);
-      } else {
-        resolve([]);
+      if (data.FaceMatches.length > 0) {
+        resolve({ code: "FACE_DETECTED", data: data.FaceMatches[0] });
+        return;
+      }
+      if (data.FaceMatches.length <= 0) {
+        resolve({ code: "NO_FACE_DETECTED" });
+        return;
       }
     });
   });
