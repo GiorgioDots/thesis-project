@@ -9,12 +9,11 @@ const router = express.Router();
 router.put(
   "/",
   [
-    body("telegramId")
+    body("telegramIds")
       .optional({ checkFalsy: true })
-      .trim(),
-    body("name")
-      .optional({ checkFalsy: true })
-      .trim(),
+      .isArray()
+      .withMessage("Telegram ids must be an array."),
+    body("name").optional({ checkFalsy: true }).trim(),
     body("password", "Password must be min 8 characters long")
       .optional({ checkFalsy: true })
       .trim()
@@ -23,10 +22,23 @@ router.put(
       .optional({ checkFalsy: true })
       .trim()
       .isEmail()
-      .normalizeEmail()
+      .normalizeEmail(),
   ],
   isAuth,
   userController.updateUser
+);
+
+router.post(
+  "/toggle-plant-status",
+  isAuth,
+  [
+    body("action")
+      .notEmpty()
+      .withMessage("Action is required.")
+      .isString()
+      .withMessage("Action must be a string."),
+  ],
+  userController.togglePlantStatus
 );
 
 module.exports = router;

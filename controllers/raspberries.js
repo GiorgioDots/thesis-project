@@ -180,7 +180,7 @@ exports.updateRaspberry = async (req, res, next) => {
       raspberry = await raspberry.save();
       try {
         await request.post(
-          `${process.env.WS_CONTROLLER_URL}/raspberry/${raspiId}/restart`
+          `${process.env.WS_CONTROLLER_URL}/raspberry/restart/${raspiId}`
         );
         message = "Updated successfully.";
       } catch (error) {

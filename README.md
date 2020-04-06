@@ -10,16 +10,9 @@ people: Array of References to Person
 events: Array of References to Event
 password: String, required, min length 8 characters
 collectionId: String, required
-plantStatus: String, options ("offline", "partial", "working"), default "offline"
 createdAt: Date
 updatedAt: Date
 ```
-
-For plant status:
-
-- offline: every raspberries are disconnected;
-- partial: some raspberries are disconnected;
-- online: every raspberries are connected;
 
 # Raspberry
 

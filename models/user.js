@@ -39,11 +39,7 @@ const userSchema = new Schema(
     collectionId: {
       type: String,
       required: true,
-    },
-    plantStatus: {
-      type: String,
-      default: "offline",
-    },
+    }
   },
   { timestamps: true, versionKey: false }
 );
