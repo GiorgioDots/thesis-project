@@ -1,119 +1,118 @@
-const uuid = require('uuid');
-const fs = require('fs');
-const { sendEvent } = require('../utils/telegram-bot');
-const User = require('../models/user');
-const Event = require('../models/event');
-const Person = require('../models/person');
-const RaspiConfig = require('../models/raspberry');
+const uuid = require("uuid");
+const fs = require("fs");
+const emoji = require("node-emoji");
 
 const {
   s3UploadFileSync,
   searchFacesByImage,
-  s3DeleteFileSync
-} = require('../utils/aws');
-const { saveFileSync } = require('../utils/fs');
+  s3DeleteFileSync,
+} = require("../utils/aws");
+const { sendEvent } = require("../utils/telegram-bot");
+const { saveFileSync } = require("../utils/fs");
+const sendMail = require("../utils/sendgrid");
+
+const User = require("../models/user");
+const Event = require("../models/event");
+const Person = require("../models/person");
+const Raspberry = require("../models/raspberry");
+
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
-module.exports.createEvent = (req, res, next) => {
+exports.createEvent = async (req, res, next) => {
   if (!req.files) {
-    throw new Error('No images from event');
+    const error = new Error("No images provided.");
+    error.statusCod = 422;
+    return next(error);
   }
-  const fileId = `${uuid()}.jpg`;
+  if (!req.raspiId) {
+    const error = new Error("Not authorized.");
+    error.statusCod = 401;
+    return next(error);
+  }
+  const fileId = `${uuid.v4()}.jpg`;
   const fileName = `./tmp/${fileId}`;
-  let imageUrl;
-  let user;
-  let person;
-  let eventDescription = null;
-  let eventDate = new Date();
-  let event;
-  saveFileSync(req.files.image, fileName)
-    .then(result => {
-      return s3UploadFileSync(
-        fs.readFileSync(fileName),
-        fileId,
-        AWS_EVENTS_BKTNAME
-      );
-    })
-    .then(url => {
-      imageUrl = url;
-      return RaspiConfig.findOne({ raspiId: req.params.raspiId });
-    })
-    .then(result => {
-      return User.findOne({ raspiConfig: result._id });
-    })
-    .then(result => {
-      user = result;
-      return searchFacesByImage(
-        user.collectionId,
-        AWS_EVENTS_BKTNAME,
-        fs.readFileSync(fileName)
-      );
-    })
-    .then(faceMatch => {
-      fs.unlinkSync(fileName);
-      if (faceMatch.length > 0) {
-        return Person.findOne({ faceId: faceMatch[0].Face.FaceId })
-          .then(personResult => {
-            person = personResult;
-            eventDescription = `Person: ${person.name}; - Degree: ${person.degree}; Detected!`;
-            if (person.doCount) {
-              person.counter++;
-            }
-            return person.save();
-          })
-          .then(result => {
-            event = new Event({
-              person: person._id,
-              description: eventDescription,
-              user: user._id,
-              imageName: fileId,
-              date: eventDate,
-              imageUrl: imageUrl
-            });
-            if (person.doNotify) {
-              sendEvent(eventDescription, imageUrl, user.telegramId);
-            }
-            return event;
-          })
-          .then(result => {
-            return event.save();
-          })
-          .then(result => {
-            user.events.push(result._id);
-            return user.save();
-          })
-          .catch(error => {
-            throw error;
-          });
-      } else {
-        eventDescription = 'Unknown person detected!';
-        return sendEvent(eventDescription, imageUrl, user.telegramId);
-      }
-    })
-    .then(result => {
-      res.status(200).json({
-        message: 'Event created',
-        event: event
-      });
-    })
-    .catch(error => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
+  let isCreated = false;
+  let eventDescription;
+  try {
+    await saveFileSync(req.files.image, fileName);
+    const imageUrl = await s3UploadFileSync(
+      fs.readFileSync(fileName),
+      fileId,
+      AWS_EVENTS_BKTNAME
+    );
+    const raspberry = await Raspberry.findOne({
+      raspiId: req.raspiId.toString(),
     });
+    const user = await User.findById(raspberry.userId);
+    const searchResult = await searchFacesByImage(
+      user.collectionId,
+      AWS_EVENTS_BKTNAME,
+      fs.readFileSync(fileName)
+    );
+    fs.unlinkSync(fileName);
+    if (searchResult.code == "NO_FACES_DETECTED") {
+      eventDescription = "Something unknown triggered the system.";
+      const warningEmoji = emoji.get("warning");
+      sendMail(
+        user.email,
+        `RaspiFace - New Event! ${warningEmoji} ${warningEmoji} ${warningEmoji}`,
+        `<b>${eventDescription}</b>` //generate correct html
+      );
+      for (telegramId of user.telegramIds) {
+        sendEvent(eventDescription, imageUrl, telegramId);
+      }
+      isCreated = true;
+    }
+    throw new Error(eventDescription);
+    if (faceMatch.length > 0) {
+      const person = await Person.findOne({ faceId: faceMatch[0].Face.FaceId });
+      eventDescription = `Person: ${person.name}; - Degree: ${person.degree}; Detected!`;
+      if (person.doCount) {
+        person.counter++;
+      }
+      await person.save();
+      event = new Event({
+        person: person._id,
+        description: eventDescription,
+        user: user._id,
+        imageName: fileId,
+        imageUrl: imageUrl,
+      });
+      if (person.doNotify) {
+        sendEvent(eventDescription, imageUrl, user.telegramId);
+      }
+      const savedEvent = await event.save();
+      user.events.push(savedEvent._id);
+      await user.save();
+    } else {
+      eventDescription = "Unknown person detected!";
+      await sendEvent(eventDescription, imageUrl, user.telegramId);
+    }
+    res.status(200).json({
+      message: "Event created",
+      event: event,
+    });
+  } catch (error) {
+    if (fs.existsSync(fileName)) {
+      fs.unlinkSync(fileName);
+    }
+    if (!isCreated) {
+      s3DeleteFileSync(fileId, AWS_EVENTS_BKTNAME);
+    }
+    return next(error);
+  }
 };
 
 module.exports.getEvent = (req, res, next) => {
   let eventId = req.params.eventId;
   Event.findById(eventId)
-    .then(result => {
+    .then((result) => {
       if (!result) {
-        throw new Error('Event not found');
+        throw new Error("Event not found");
       }
-      res.status(201).json({ message: 'Success!', event: result });
+      res.status(201).json({ message: "Success!", event: result });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -124,10 +123,10 @@ module.exports.getEvent = (req, res, next) => {
 module.exports.getEvents = (req, res, next) => {
   let userId = req.params.userId;
   Event.find({ user: userId })
-    .then(result => {
-      res.status(201).json({ message: 'Success!', events: result });
+    .then((result) => {
+      res.status(201).json({ message: "Success!", events: result });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -139,24 +138,24 @@ module.exports.deleteEvent = (req, res, next) => {
   let eventId = req.params.eventId;
   let event;
   Event.findById(eventId)
-    .then(result => {
+    .then((result) => {
       event = result;
       return User.findById(event.user);
     })
-    .then(result => {
+    .then((result) => {
       result.events.pull(eventId);
       return result.save();
     })
-    .then(result => {
+    .then((result) => {
       return s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
     })
-    .then(result => {
+    .then((result) => {
       return Event.findByIdAndRemove(eventId, { useFindAndModify: false });
     })
-    .then(result => {
-      res.status(201).json({ message: 'Event deleted!', event: result });
+    .then((result) => {
+      res.status(201).json({ message: "Event deleted!", event: result });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
@@ -168,24 +167,24 @@ module.exports.deleteEvents = (req, res, next) => {
   let userId = req.params.userId;
   let user;
   User.findById(userId)
-    .then(result => {
+    .then((result) => {
       user = result;
       return Event.find({ user: userId });
     })
-    .then(result => {
+    .then((result) => {
       for (let event of result) {
         s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
       }
       return Event.deleteMany({ user: userId });
     })
-    .then(result => {
+    .then((result) => {
       user.events = [];
       return user.save();
     })
-    .then(result => {
-      res.status(201).json({ message: 'Events deleted!', events: user.events });
+    .then((result) => {
+      res.status(201).json({ message: "Events deleted!", events: user.events });
     })
-    .catch(error => {
+    .catch((error) => {
       if (!error.statusCode) {
         error.statusCode = 500;
       }

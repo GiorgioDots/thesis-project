@@ -94,11 +94,6 @@ exports.indexFacesSync = (collectionId, fileId, bkt_name) => {
         reject(error);
         return;
       }
-      // if (data.FaceRecords.length > 1) {
-      //   reject(new Error("Please, only one person per photo!"));
-      //   return;
-      // }
-      // resolve(data.FaceRecords[0].Face.FaceId);
       resolve(data.FaceRecords);
     });
   });
@@ -117,14 +112,19 @@ exports.searchFacesByImage = (collectionId, bkt_name, file) => {
   return new Promise((resolve, reject) => {
     rekognition.searchFacesByImage(params, (err, data) => {
       if (err) {
-        reject(err);
+        switch (err.code) {
+          case "InvalidParameterException":
+            resolve({ code: "NO_FACES_DETECTED" });
+        }
         return;
       }
-      if (data) {
-        resolve(data.FaceMatches);
-      } else {
-        resolve([]);
-      }
+      // if (data) {
+      //   resolve(data.FaceMatches);
+      // } else {
+      //   resolve([]);
+      // }
+      console.log(data);
+      resolve(data);
     });
   });
 };

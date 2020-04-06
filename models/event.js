@@ -6,8 +6,7 @@ const eventSchema = new Schema(
   {
     person: {
       type: Schema.Types.ObjectId,
-      ref: "Person",
-      required: true,
+      ref: "Person"
     },
     user: {
       type: Schema.Types.ObjectId,

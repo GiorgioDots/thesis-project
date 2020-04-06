@@ -6,7 +6,7 @@ const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
-router.post('/:raspiId', eventsController.createEvent);
+router.post('/', isAuth, eventsController.createEvent);
 
 router.get('/:eventId', isAuth, eventsController.getEvent);
 

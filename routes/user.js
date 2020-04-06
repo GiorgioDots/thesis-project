@@ -21,8 +21,7 @@ router.put(
     body("email", "Please enter a valid e-mail.")
       .optional({ checkFalsy: true })
       .trim()
-      .isEmail()
-      .normalizeEmail(),
+      .isEmail(),
   ],
   isAuth,
   userController.updateUser
