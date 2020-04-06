@@ -81,4 +81,23 @@ router.post(
   raspberryController.signup
 );
 
+router.post(
+  "/login",
+  [
+    body("raspiId")
+      .notEmpty()
+      .withMessage("raspiId is required.")
+      .isString()
+      .withMessage("raspiId must be a string.")
+      .trim(),
+    body("raspiPassword")
+      .notEmpty()
+      .withMessage("raspiPassword is required.")
+      .isString()
+      .withMessage("raspiPassword must be a string.")
+      .trim(),
+  ],
+  raspberryController.login
+);
+
 module.exports = router;
