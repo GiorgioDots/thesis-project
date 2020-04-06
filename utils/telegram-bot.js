@@ -1,5 +1,7 @@
 const Telegraf = require("telegraf");
+const extra = require("telegraf/extra");
 
+const markdown = extra.markdown();
 const logger = require("../utils/logger");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -19,7 +21,7 @@ exports.botController = (req, res) => {
 };
 
 exports.sendEvent = (description, imageUrl, telegramId) => {
-  logger.info(`Sending notification: ${description} ${imageUrl} ${telegramId}`);
+  logger.info(`Sending notification: ${description}`);
   bot.telegram.sendPhoto(telegramId, imageUrl);
-  bot.telegram.sendMessage(telegramId, description);
+  bot.telegram.sendMessage(telegramId, description, markdown);
 };

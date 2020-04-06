@@ -17,6 +17,9 @@ const Event = require("../models/event");
 const Person = require("../models/person");
 const Raspberry = require("../models/raspberry");
 
+const emailTemplate = fs
+  .readFileSync("./email-template/event-created.html")
+  .toString();
 const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
 exports.createEvent = async (req, res, next) => {
@@ -33,6 +36,7 @@ exports.createEvent = async (req, res, next) => {
   const fileId = `${uuid.v4()}.jpg`;
   const fileName = `./tmp/${fileId}`;
   let eventDescription;
+  let isCreated = false;
   try {
     await saveFileSync(req.files.image, fileName);
     const imageUrl = await s3UploadFileSync(
@@ -93,31 +97,47 @@ exports.createEvent = async (req, res, next) => {
         doNotify = person.doNotify;
       }
     }
-    let isCreated = false;
     const event = await newEvent.save();
     isCreated = true;
+
     if (doNotify) {
       const warningEmoji = emoji.get("warning");
+      const html = renderEmailHtml(
+        user.name,
+        raspberry.raspiId,
+        eventDescription,
+        imageUrl
+      );
       sendMail(
         user.email,
         `RaspiFace - New Event! ${warningEmoji} ${warningEmoji} ${warningEmoji}`,
-        `<h1>Raspberry: ${raspberry.raspiId}</h1><b>${eventDescription}</b>` //generate correct html with the image
+        html
       );
       for (telegramId of user.telegramIds) {
         sendEvent(
-          `Raspberry: ${raspberry.raspiId} - ${eventDescription}`,
+          //SISTEMARE LO STILE DELLE NOTIFICHE
+          `Raspberry: *${raspberry.raspiId}*\n\n${eventDescription}`,
           imageUrl,
           telegramId
         );
       }
     }
 
+    let eventPerson;
+    if (event.person) {
+      eventPerson = {
+        _id: event.person._id.toString(),
+        counter: event.person.counter,
+        name: event.person.name,
+        description: event.person.description,
+      };
+    }
     request.post(`${process.env.WS_CONTROLLER_URL}/event`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: user._id.toString(),
         event: {
-          person: event.person,
+          person: eventPerson,
           description: event.description,
           imageUrl: event.imageUrl,
           raspiId: event.raspiId,
@@ -125,11 +145,10 @@ exports.createEvent = async (req, res, next) => {
         },
       }),
     });
-
     res.status(200).json({
       message: "Event created successfully.",
       event: {
-        person: event.person,
+        person: eventPerson,
         description: event.description,
         imageUrl: event.imageUrl,
         raspiId: event.raspiId,
@@ -234,4 +253,13 @@ module.exports.deleteEvents = (req, res, next) => {
       }
       next(error);
     });
+};
+
+const renderEmailHtml = (userName, raspiId, description, imageUrl) => {
+  let fileContent = emailTemplate;
+  fileContent = fileContent.replace("{{USER_NAME}}", userName);
+  fileContent = fileContent.replace("{{RASPI_ID}}", raspiId);
+  fileContent = fileContent.replace("{{DESCRIPTION}}", description);
+  fileContent = fileContent.replace("{{IMAGE_URL}}", imageUrl);
+  return fileContent;
 };
