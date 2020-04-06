@@ -60,39 +60,25 @@ router.put(
   raspberryController.updateRaspberry
 );
 
-router.delete('/:raspiId', isAuth, raspberryController.deleteRaspberry)
+router.delete("/:raspiId", isAuth, raspberryController.deleteRaspberry);
 
-// router.post("/signup", [
-//   body("raspiId")
-//     .notEmpty()
-//     .withMessage("raspiId is required.")
-//     .isString()
-//     .trim(),
-//   body("raspiPassword")
-//     .notEmpty()
-//     .withMessage("raspiPassword is required.")
-//     .isString()
-//     .trim(),
-// ]);
-
-/*OLD */
-router.get("/config", isAuth, raspberryController.getRaspiConfigs);
-
-router.get("/config/:configId", isAuth, raspberryController.getRaspiConfig);
-
-router.put(
-  "/config/:configId",
-  isAuth,
+router.post(
+  "/signup",
   [
-    body("confidence", "Confidence must be between 0 and 100")
-      .optional({ nullable: true, checkFalsy: true })
-      .isNumeric()
-      .custom((value) => value < 100 && value > 0),
-    body("resolution")
-      .optional({ nullable: true, checkFalsy: true })
-      .custom((value) => resolutions.includes(value)),
+    body("raspiId")
+      .notEmpty()
+      .withMessage("raspiId is required.")
+      .isString()
+      .withMessage("raspiId must be a string.")
+      .trim(),
+    body("raspiPassword")
+      .notEmpty()
+      .withMessage("raspiPassword is required.")
+      .isString()
+      .withMessage("raspiPassword must be a string.")
+      .trim(),
   ],
-  raspberryController.updateRaspiConfig
+  raspberryController.signup
 );
 
 module.exports = router;

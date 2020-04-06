@@ -1,5 +1,7 @@
 const request = require("request-promise-native");
 const { validationResult } = require("express-validator");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 const logger = require("../utils/logger");
 const User = require("../models/user");
@@ -231,48 +233,7 @@ exports.deleteRaspberry = async (req, res, next) => {
   }
 };
 
-//old
-
-exports.getRaspiConfigs = async (req, res, next) => {
-  const userId = req.userId;
-  try {
-    const user = await User.findById(userId).populate("raspiConfigs");
-    const configs = user.raspiConfigs;
-    logger.info(`User with id ${userId} retrieved his raspi configs`);
-    res.status(200).json({ message: "Success.", raspiConfigs: configs });
-  } catch (err) {
-    return next(err);
-  }
-};
-
-module.exports.getRaspiConfig = async (req, res, next) => {
-  const configId = req.params.configId;
-  if (!configId) {
-    const error = new Error("RaspiConfig not found.");
-    error.statusCode = 404;
-    throw error;
-  }
-  try {
-    const user = await User.findById(req.userId).populate("raspiConfigs");
-    const configs = user.raspiConfigs;
-    const config = configs.find((cfg) => cfg._id.toString() === configId);
-    if (!config) {
-      const error = new Error("RaspiConfig not found.");
-      error.statusCode = 404;
-      throw error;
-    }
-    logger.info(
-      `User with id ${req.userId} retrieved raspi config with id ${configId}`
-    );
-    res
-      .status(201)
-      .json({ message: "RaspiConfig found.", raspiConfig: config });
-  } catch (err) {
-    return next(err);
-  }
-};
-
-module.exports.updateRaspiConfig = async (req, res, next) => {
+exports.signup = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error("Validation failed.");
@@ -280,63 +241,20 @@ module.exports.updateRaspiConfig = async (req, res, next) => {
     error.errors = errors.array();
     return next(error);
   }
-  const configId = req.params.configId;
-  if (!configId) {
-    const error = new Error("RaspiConfig not found.");
-    error.statusCode = 404;
-    return next(error);
-  }
+  const raspiId = req.body.raspiId;
+  const raspiPassword = req.body.raspiPassword;
   try {
-    const user = await User.findById(req.userId).populate("raspiConfigs");
-    const configs = user.raspiConfigs;
-    const isConfigOwner = configs.find(
-      (cfg) => cfg._id.toString() === configId
-    );
-    if (!isConfigOwner) {
-      const error = new Error("RaspiConfig not found.");
-      error.statusCode = 404;
+    const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (raspberry.raspiPassword) {
+      const error = new Error("Raspberry is signed up already.");
+      error.statusCode = 422;
       throw error;
     }
-    let isModified = false;
-    const resolution = req.body.resolution;
-    const confidence = req.body.confidence;
-    const config = await RaspiConfig.findById(configId);
-    if (resolution) {
-      if (config.resolution !== resolution) {
-        config.resolution = resolution;
-        isModified = true;
-      }
-    }
-    if (confidence) {
-      if (config.confidence !== confidence) {
-        config.confidence = confidence;
-        isModified = true;
-      }
-    }
-    let message = "Nothing to update.";
-    if (isModified) {
-      message = "RaspiConfig updated.";
-      config.save();
-      try {
-        await request({
-          url: `${process.env.WS_CONTROLLER_URL}/raspi/${config.raspiId}`,
-          method: "POST",
-          json: {
-            resolution: config.resolution,
-            confidence: config.confidence,
-            raspiId: config.raspiId,
-          },
-        });
-      } catch (error) {
-        message =
-          "RaspiConfig Updated, but it isn't connected to the internet.";
-      }
-    }
-    logger.info(
-      `User with id ${req.userId} updated raspi config with id ${configId}`
-    );
-    res.status(200).json({ message: message, raspiConfig: config });
-  } catch (err) {
-    return next(err);
+    const hashedPw = await bcrypt.hash(raspiPassword);
+    raspberry.raspiPassword = hashedPw;
+    const token = jwt.sign({ raspiId: raspiId }, process.env.JWT_SECRET);
+    res.status(200).json({ message: "Signed Up", token: token });
+  } catch (error) {
+    return next(error);
   }
 };
