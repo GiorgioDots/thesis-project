@@ -62,6 +62,24 @@ exports.s3DeleteFileSync = (objName, bkt_name) => {
   });
 };
 
+exports.s3DeleteFilesSync = (objNames, bkt_name) => {
+  const params = {
+    Bucket: bkt_name,
+    Delete: {
+      Objects: objNames,
+    },
+  };
+  return new Promise((resolve, reject) => {
+    s3.deleteObjects(params, (err, data) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(data);
+    });
+  });
+};
+
 exports.deleteFacesFromCollectionSync = (collectionId, faceIds) => {
   const params = {
     CollectionId: collectionId,

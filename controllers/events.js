@@ -7,6 +7,7 @@ const {
   s3UploadFileSync,
   searchFacesByImage,
   s3DeleteFileSync,
+  s3DeleteFilesSync,
 } = require("../utils/aws");
 const { sendEvent } = require("../utils/telegram-bot");
 const { saveFileSync } = require("../utils/fs");
@@ -99,7 +100,8 @@ exports.createEvent = async (req, res, next) => {
     }
     const event = await newEvent.save();
     isCreated = true;
-
+    user.events.push(event);
+    await user.save();
     if (doNotify) {
       const warningEmoji = emoji.get("warning");
       const html = renderEmailHtml(
@@ -115,7 +117,6 @@ exports.createEvent = async (req, res, next) => {
       );
       for (telegramId of user.telegramIds) {
         sendEvent(
-          //SISTEMARE LO STILE DELLE NOTIFICHE
           `Raspberry: *${raspberry.raspiId}*\n\n${eventDescription}`,
           imageUrl,
           telegramId
@@ -145,7 +146,7 @@ exports.createEvent = async (req, res, next) => {
         },
       }),
     });
-    res.status(200).json({
+    res.status(201).json({
       message: "Event created successfully.",
       event: {
         person: eventPerson,
@@ -153,6 +154,7 @@ exports.createEvent = async (req, res, next) => {
         imageUrl: event.imageUrl,
         raspiId: event.raspiId,
         createdAt: new Date(event.createdAt).toISOString(),
+        _id: event._id.toString(),
       },
     });
   } catch (error) {
@@ -166,93 +168,105 @@ exports.createEvent = async (req, res, next) => {
   }
 };
 
-module.exports.getEvent = (req, res, next) => {
-  let eventId = req.params.eventId;
-  Event.findById(eventId)
-    .then((result) => {
-      if (!result) {
-        throw new Error("Event not found");
-      }
-      res.status(201).json({ message: "Success!", event: result });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
+module.exports.getEvent = async (req, res, next) => {
+  const eventId = req.params.eventId;
+  const userId = req.userId;
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      const error = new Error("Event not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (event.userId.toString() !== userId.toString()) {
+      const error = new Error("You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    res.status(200).json({
+      message: "Success.",
+      event: {
+        _id: event._id.toString(),
+        person: event.person,
+        description: event.description,
+        imageUrl: event.imageUrl,
+        raspiId: event.raspiId,
+        createdAt: new Date(event.createdAt).toISOString(),
+      },
     });
+  } catch (err) {
+    return next(err);
+  }
 };
 
-module.exports.getEvents = (req, res, next) => {
-  let userId = req.params.userId;
-  Event.find({ user: userId })
-    .then((result) => {
-      res.status(201).json({ message: "Success!", events: result });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
+module.exports.getEvents = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const loadedEvents = await Event.find({ userId: userId });
+    const events = loadedEvents.map((event) => {
+      return {
+        _id: event._id.toString(),
+        person: event.person,
+        description: event.description,
+        imageUrl: event.imageUrl,
+        raspiId: event.raspiId,
+        createdAt: new Date(event.createdAt).toISOString(),
+      };
     });
+    res.status(200).json({ message: "Success.", events: events });
+  } catch (err) {
+    return next(err);
+  }
 };
 
-module.exports.deleteEvent = (req, res, next) => {
-  let eventId = req.params.eventId;
-  let event;
-  Event.findById(eventId)
-    .then((result) => {
-      event = result;
-      return User.findById(event.user);
-    })
-    .then((result) => {
-      result.events.pull(eventId);
-      return result.save();
-    })
-    .then((result) => {
-      return s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
-    })
-    .then((result) => {
-      return Event.findByIdAndRemove(eventId, { useFindAndModify: false });
-    })
-    .then((result) => {
-      res.status(201).json({ message: "Event deleted!", event: result });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
-    });
+module.exports.deleteEvent = async (req, res, next) => {
+  const eventId = req.params.eventId;
+  const userId = req.userId;
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      const error = new Error("Event not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (event.userId.toString() !== userId.toString()) {
+      const error = new Error("You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    const user = await User.findById(userId);
+    user.events.pull(eventId);
+    await user.save();
+    await s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
+    await Event.findByIdAndRemove(eventId);
+    res.status(201).json({ message: "Event deleted." });
+  } catch (err) {
+    return next(err);
+  }
 };
 
-module.exports.deleteEvents = (req, res, next) => {
-  let userId = req.params.userId;
-  let user;
-  User.findById(userId)
-    .then((result) => {
-      user = result;
-      return Event.find({ user: userId });
-    })
-    .then((result) => {
-      for (let event of result) {
-        s3DeleteFileSync(event.imageName, AWS_EVENTS_BKTNAME);
-      }
-      return Event.deleteMany({ user: userId });
-    })
-    .then((result) => {
-      user.events = [];
-      return user.save();
-    })
-    .then((result) => {
-      res.status(201).json({ message: "Events deleted!", events: user.events });
-    })
-    .catch((error) => {
-      if (!error.statusCode) {
-        error.statusCode = 500;
-      }
-      next(error);
-    });
+module.exports.deleteEvents = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const user = await User.findById(userId);
+    const events = await Event.find({ userId: userId });
+    if (events.length <= 0) {
+      const error = new Error("No events found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    const eventsFileNames = [];
+    for (let event of events) {
+      eventsFileNames.push({ Key: event.imageName });
+    }
+    await Event.deleteMany({ userId: userId });
+    user.events = [];
+    await user.save();
+    s3DeleteFilesSync(eventsFileNames, AWS_EVENTS_BKTNAME);
+    res.status(200).json({ message: "Events deleted." });
+  } catch (err) {
+    return next(err);
+  }
 };
 
 const renderEmailHtml = (userName, raspiId, description, imageUrl) => {

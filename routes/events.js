@@ -8,12 +8,12 @@ const router = express.Router();
 
 router.post('/', isAuth, eventsController.createEvent);
 
+router.get('/', isAuth, eventsController.getEvents);
+
 router.get('/:eventId', isAuth, eventsController.getEvent);
 
-router.get('/user/:userId', isAuth, eventsController.getEvents);
+router.delete('/', isAuth, eventsController.deleteEvents);
 
 router.delete('/:eventId', isAuth, eventsController.deleteEvent);
-
-router.delete('/user/:userId', isAuth, eventsController.deleteEvents);
 
 module.exports = router;
