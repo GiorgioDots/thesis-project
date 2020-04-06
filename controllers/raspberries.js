@@ -245,15 +245,57 @@ exports.signup = async (req, res, next) => {
   const raspiPassword = req.body.raspiPassword;
   try {
     const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (!raspberry) {
+      const error = new Error("Raspberry not found.");
+      error.statusCode = 404;
+      throw error;
+    }
     if (raspberry.raspiPassword) {
       const error = new Error("Raspberry is signed up already.");
       error.statusCode = 422;
       throw error;
     }
-    const hashedPw = await bcrypt.hash(raspiPassword);
+    const salt = await bcrypt.genSalt(12);
+    const hashedPw = await bcrypt.hash(raspiPassword, salt);
     raspberry.raspiPassword = hashedPw;
+    await raspberry.save();
     const token = jwt.sign({ raspiId: raspiId }, process.env.JWT_SECRET);
-    res.status(200).json({ message: "Signed Up", token: token });
+    res.status(200).json({ message: "Signed Up.", token: token });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.login = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed.");
+    error.statusCode = 422;
+    error.errors = errors.array();
+    return next(error);
+  }
+  const raspiId = req.body.raspiId;
+  const raspiPassword = req.body.raspiPassword;
+  try {
+    const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (!raspberry) {
+      const error = new Error("raspiId or raspiPassword wrong.");
+      error.statusCode = 422;
+      throw error;
+    }
+    if (!raspberry.raspiPassword) {
+      const error = new Error("raspiId or raspiPassword wrong.");
+      error.statusCode = 422;
+      throw error;
+    }
+    const isEqual = await bcrypt.compare(raspiPassword, raspberry.raspiPassword);
+    if (!isEqual) {
+      const error = new Error("raspiId or raspiPassword wrong.");
+      error.statusCode = 422;
+      throw error;
+    }
+    const token = jwt.sign({ raspiId: raspiId }, process.env.JWT_SECRET);
+    res.status(200).json({ message: "Logged in.", token: token });
   } catch (error) {
     return next(error);
   }
