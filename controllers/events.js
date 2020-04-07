@@ -201,8 +201,13 @@ module.exports.getEvent = async (req, res, next) => {
 
 module.exports.getEvents = async (req, res, next) => {
   const userId = req.userId;
+  const perPage = +req.query.perPage || 10;
+  const currentPage = req.query.page || 1;
   try {
-    const loadedEvents = await Event.find({ userId: userId });
+    const totalEvents = await Event.find({ userId: userId }).countDocuments();
+    const loadedEvents = await Event.find({ userId: userId })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
     const events = loadedEvents.map((event) => {
       return {
         _id: event._id.toString(),
@@ -213,7 +218,9 @@ module.exports.getEvents = async (req, res, next) => {
         createdAt: new Date(event.createdAt).toISOString(),
       };
     });
-    res.status(200).json({ message: "Success.", events: events });
+    res
+      .status(200)
+      .json({ message: "Success.", events: events, totalEvents: totalEvents });
   } catch (err) {
     return next(err);
   }
