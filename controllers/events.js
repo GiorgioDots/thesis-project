@@ -10,7 +10,7 @@ const {
   s3DeleteFilesSync,
 } = require("../utils/aws");
 const { sendEvent } = require("../utils/telegram-bot");
-const { saveFileSync, checkImageFileExtension } = require("../utils/fs");
+const { checkImageFileExtension } = require("../utils/fs");
 const sendMail = require("../utils/sendgrid");
 
 const User = require("../models/user");
@@ -34,12 +34,13 @@ exports.createEvent = async (req, res, next) => {
     error.statusCod = 422;
     return next(error);
   }
+  const image = req.files.image;
   if (!req.raspiId) {
     const error = new Error("Not authorized.");
     error.statusCod = 401;
     return next(error);
   }
-  if (!checkImageFileExtension(req.files.image.name)) {
+  if (!checkImageFileExtension(image.name)) {
     const error = new Error(
       "The format of the image must be png, jpg or jpeg."
     );
@@ -47,13 +48,11 @@ exports.createEvent = async (req, res, next) => {
     return next(error);
   }
   const fileId = `${uuid.v4()}.jpg`;
-  const fileName = `./tmp/${fileId}`;
   let eventDescription;
   let isCreated = false;
   try {
-    await saveFileSync(req.files.image, fileName);
     const imageUrl = await s3UploadFileSync(
-      fs.readFileSync(fileName),
+      image.data,
       fileId,
       AWS_EVENTS_BKTNAME
     );
@@ -64,9 +63,8 @@ exports.createEvent = async (req, res, next) => {
     const searchResult = await searchFacesByImage(
       user.collectionId,
       AWS_EVENTS_BKTNAME,
-      fs.readFileSync(fileName)
+      image.data
     );
-    fs.unlinkSync(fileName);
     let newEvent;
     let doNotify = true;
     if (searchResult.code == "NO_FACE_DETECTED") {
@@ -170,9 +168,6 @@ exports.createEvent = async (req, res, next) => {
       },
     });
   } catch (error) {
-    if (fs.existsSync(fileName)) {
-      fs.unlinkSync(fileName);
-    }
     if (!isCreated) {
       s3DeleteFileSync(fileId, AWS_EVENTS_BKTNAME);
     }
