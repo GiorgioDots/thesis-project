@@ -76,6 +76,7 @@ exports.getRaspberries = async (req, res, next) => {
     });
     const responseRaspberries = foundRaspberries.map((rasp) => {
       return {
+        name: rasp.name,
         raspiId: rasp.raspiId,
         resolution: rasp.resolution,
         confidence: rasp.confidence,
@@ -113,6 +114,7 @@ exports.getRaspberry = async (req, res, next) => {
     res.status(200).json({
       message: "Success.",
       raspberry: {
+        name: raspberry.name,
         raspiId: raspberry.raspiId,
         resolution: raspberry.resolution,
         confidence: raspberry.confidence,
