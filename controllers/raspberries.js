@@ -4,7 +4,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const uuid = require("uuid");
 
-const { s3UploadFileSync, s3DeleteFileSync } = require("../utils/aws");
+const {
+  s3UploadFileSync,
+  s3DeleteFileSync,
+  s3DeleteFilesSync,
+} = require("../utils/aws");
 const { checkImageFileExtension } = require("../utils/fs");
 const logger = require("../utils/logger");
 const User = require("../models/user");
@@ -229,7 +233,12 @@ exports.deleteRaspberry = async (req, res, next) => {
       error.statusCode = 401;
       throw error;
     }
+    const imagesFileNames = [];
+    for (let image of raspberry.lastImages) {
+      imagesFileNames.push({ Key: image.imageId });
+    }
     await Raspberry.findOneAndRemove({ raspiId: raspiId });
+    s3DeleteFilesSync(imagesFileNames, process.env.AWS_LAST_IMAGES_BKTNAME);
     res.status(200).json({ message: "Success." });
   } catch (err) {
     return next(err);
