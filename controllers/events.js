@@ -116,7 +116,7 @@ exports.createEvent = async (req, res, next) => {
       const warningEmoji = emoji.get("warning");
       const html = renderEmailHtml(
         user.name,
-        raspberry.raspiId,
+        raspberry.name,
         eventDescription,
         imageUrl
       );
@@ -127,13 +127,12 @@ exports.createEvent = async (req, res, next) => {
       );
       for (telegramId of user.telegramIds) {
         sendEvent(
-          `Raspberry: *${raspberry.raspiId}*\n\n${eventDescription}`,
+          `Raspberry: *${raspberry.name}* says:\n\n${eventDescription}`,
           imageUrl,
           telegramId
         );
       }
     }
-
     let eventPerson;
     if (event.person) {
       eventPerson = {
@@ -283,10 +282,10 @@ module.exports.deleteEvents = async (req, res, next) => {
   }
 };
 
-const renderEmailHtml = (userName, raspiId, description, imageUrl) => {
+const renderEmailHtml = (userName, raspiName, description, imageUrl) => {
   let fileContent = emailTemplate;
   fileContent = fileContent.replace("{{USER_NAME}}", userName);
-  fileContent = fileContent.replace("{{RASPI_ID}}", raspiId);
+  fileContent = fileContent.replace("{{RASPI_NAME}}", raspiName);
   fileContent = fileContent.replace("{{DESCRIPTION}}", description);
   fileContent = fileContent.replace("{{IMAGE_URL}}", imageUrl);
   return fileContent;
