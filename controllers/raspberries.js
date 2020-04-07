@@ -318,14 +318,12 @@ exports.updateLastImage = async (req, res, next) => {
   if (!req.files) {
     const error = new Error("No image provided.");
     error.statusCode = 404;
-    throw (error = 422);
     return next(error);
   }
   const image = req.files.image;
   if (!image) {
     const error = new Error("No image provided.");
     error.statusCode = 404;
-    throw (error = 422);
     return next(error);
   }
   if (!checkImageFileExtension(image.name)) {
