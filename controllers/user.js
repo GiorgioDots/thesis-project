@@ -5,6 +5,8 @@ const request = require("request-promise-native");
 const logger = require("../utils/logger");
 const User = require("../models/user");
 const Raspberry = require("../models/raspberry");
+const Event = require("../models/event");
+const People = require("../models/person");
 
 exports.updateUser = async (req, res, next) => {
   const errors = validationResult(req);
@@ -153,5 +155,66 @@ exports.togglePlantStatus = async (req, res, next) => {
     res.status(200).json({ message: message });
   } catch (err) {
     return next(err);
+  }
+};
+
+exports.getDashboard = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const events = await Event.find({ userId: userId.toString() })
+      .sort({
+        createdAt: -1,
+      })
+      .limit(3);
+    const lastEvents = events.map((e) => {
+      return {
+        _id: e._id.toString(),
+        person: e.person,
+        description: e.description,
+        imageUrl: e.imageUrl,
+        raspiId: e.raspiId,
+        createdAt: new Date(e.createdAt).toISOString(),
+      };
+    });
+    const people = await People.find({ userId: userId.toString() })
+      .sort({
+        counter: -1,
+      })
+      .limit(5);
+    const peopleMoreDetected = people.map((p) => {
+      return {
+        counter: 5,
+        _id: p._id.toString(),
+        name: p.name,
+      };
+    });
+    const raspberries = await Raspberry.find({ userId: userId.toString() });
+    let nRaspActive = 0;
+    for (let rasp of raspberries) {
+      if (rasp.isActive) {
+        nRaspActive++;
+      }
+    }
+    let status = "offline";
+    if (nRaspActive === raspberries.length && nRaspActive > 0) {
+      status = "online";
+    } else if (nRaspActive < raspberries.length && nRaspActive > 0) {
+      status = "partial online";
+    }
+    const raspberriesImages = raspberries.map((r) => {
+      return {
+        raspiId: r.raspiId,
+        name: r.name,
+        lastImages: r.lastImages.map((i) => i.imageUrl),
+      };
+    });
+    res.status(200).json({
+      events: lastEvents,
+      people: peopleMoreDetected,
+      plantStatus: status,
+      raspberriesImages: raspberriesImages,
+    });
+  } catch (err) {
+    next(err);
   }
 };

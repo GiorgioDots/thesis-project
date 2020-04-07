@@ -6,6 +6,8 @@ const isAuth = require("../middleware/is-auth");
 
 const router = express.Router();
 
+router.get("/dashboard", isAuth, userController.getDashboard);
+
 router.put(
   "/",
   [
