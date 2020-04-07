@@ -40,6 +40,8 @@ router.get("/", isAuth, raspberryController.getRaspberries);
 
 router.get("/:raspiId", isAuth, raspberryController.getRaspberry);
 
+router.put("/last-image", isAuth, raspberryController.updateLastImage);
+
 router.put(
   "/:raspiId",
   isAuth,

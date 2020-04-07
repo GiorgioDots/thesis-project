@@ -10,7 +10,7 @@ const {
   s3DeleteFilesSync,
 } = require("../utils/aws");
 const { sendEvent } = require("../utils/telegram-bot");
-const { saveFileSync } = require("../utils/fs");
+const { saveFileSync, checkImageFileExtension } = require("../utils/fs");
 const sendMail = require("../utils/sendgrid");
 
 const User = require("../models/user");
@@ -25,13 +25,25 @@ const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 
 exports.createEvent = async (req, res, next) => {
   if (!req.files) {
-    const error = new Error("No images provided.");
+    const error = new Error("No image provided.");
+    error.statusCod = 422;
+    return next(error);
+  }
+  if (!req.files.image) {
+    const error = new Error("No image provided.");
     error.statusCod = 422;
     return next(error);
   }
   if (!req.raspiId) {
     const error = new Error("Not authorized.");
     error.statusCod = 401;
+    return next(error);
+  }
+  if (!checkImageFileExtension(req.files.image.name)) {
+    const error = new Error(
+      "The format of the image must be png, jpg or jpeg."
+    );
+    error.statusCode = 422;
     return next(error);
   }
   const fileId = `${uuid.v4()}.jpg`;
@@ -133,7 +145,7 @@ exports.createEvent = async (req, res, next) => {
         description: event.person.description,
       };
     }
-    request.post(`${process.env.WS_CONTROLLER_URL}/event`, {
+    request.post(`${process.env.WS_CONTROLLER_URL}/user/event`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: user._id.toString(),
