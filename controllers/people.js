@@ -1,11 +1,9 @@
-const path = require("path");
-const fs = require("fs");
 const uuid = require("uuid");
 const { validationResult } = require("express-validator");
 
 const Person = require("../models/person");
 const User = require("../models/user");
-const { saveFileSync, checkImageFileExtension } = require("../utils/fs");
+const { checkImageFileExtension } = require("../utils/fs");
 const {
   s3DeleteFileSync,
   s3UploadFileSync,
@@ -73,13 +71,13 @@ exports.createPerson = async (req, res, next) => {
     error.statusCode = 422;
     return next(error);
   }
-  const file = req.files.image;
-  if (!file) {
+  const image = req.files.image;
+  if (!image) {
     const error = new Error("No image provided.");
     error.statusCod = 422;
     return next(error);
   }
-  if (!checkImageFileExtension(file.name)) {
+  if (!checkImageFileExtension(image.name)) {
     const error = new Error(
       "The format of the image must be png, jpg or jpeg."
     );
@@ -94,15 +92,12 @@ exports.createPerson = async (req, res, next) => {
   }
   const userId = req.userId;
   const fileId = `${uuid.v4()}.png`;
-  const filePath = `./tmp/${fileId}`;
   try {
-    await saveFileSync(file, filePath);
     const imageUrl = await s3UploadFileSync(
-      fs.readFileSync(filePath),
+      image.data,
       fileId,
       AWS_PEOPLE_BKTNAME
     );
-    fs.unlinkSync(filePath);
     const user = await User.findById(userId);
     if (!user) {
       const error = new Error("User not found.");
