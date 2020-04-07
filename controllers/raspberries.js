@@ -1,4 +1,3 @@
-const fs = require("fs");
 const request = require("request-promise-native");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
