@@ -25,10 +25,12 @@ exports.createRaspberry = async (req, res, next) => {
   const raspiId = req.body.raspiId;
   const resolution = req.body.resolution;
   const confidence = req.body.confidence;
-  const wifiSSID = req.body.wifiSSID || "";
-  const wifiPassword = req.body.wifiPassword || "";
+  const wifiSSID = req.body.wifiSSID;
+  const wifiPassword = req.body.wifiPassword;
+  const name = req.body.name;
   const userId = req.userId;
   const newRaspberry = new Raspberry({
+    name: name,
     raspiId: raspiId,
     resolution: resolution,
     confidence: confidence,
@@ -49,6 +51,7 @@ exports.createRaspberry = async (req, res, next) => {
     res.status(201).json({
       message: "Raspberry created successfully.",
       raspberry: {
+        name: raspberry.name,
         raspiId: raspberry.raspiId,
         resolution: raspberry.resolution,
         confidence: raspberry.confidence,
@@ -139,6 +142,7 @@ exports.updateRaspberry = async (req, res, next) => {
   const wifiPassword = req.body.wifiPassword;
   const wifiSSID = req.body.wifiSSID;
   const isActive = req.body.isActive;
+  const name = req.body.name;
   const userId = req.userId;
   const raspiId = req.params.raspiId;
   let isModified = false;
@@ -184,6 +188,12 @@ exports.updateRaspberry = async (req, res, next) => {
         isModified = true;
       }
     }
+    if (name) {
+      if (raspberry.name !== name) {
+        raspberry.name = name;
+        isModified = true;
+      }
+    }
     let message = "Nothing changed.";
     if (isModified) {
       raspberry = await raspberry.save();
@@ -202,6 +212,7 @@ exports.updateRaspberry = async (req, res, next) => {
     res.status(200).json({
       message: message,
       raspberry: {
+        name: raspberry.name,
         raspiId: raspberry.raspiId,
         resolution: raspberry.resolution,
         confidence: raspberry.confidence,
@@ -223,6 +234,7 @@ exports.deleteRaspberry = async (req, res, next) => {
   const userId = req.userId;
   try {
     const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    const user = await User.findById(userId);
     if (!raspberry) {
       const error = new Error("Raspberry not found.");
       error.statusCode = 404;
@@ -233,12 +245,16 @@ exports.deleteRaspberry = async (req, res, next) => {
       error.statusCode = 401;
       throw error;
     }
+    user.raspberries.pull(raspberry);
     const imagesFileNames = [];
     for (let image of raspberry.lastImages) {
       imagesFileNames.push({ Key: image.imageId });
     }
+    await user.save();
     await Raspberry.findOneAndRemove({ raspiId: raspiId });
-    s3DeleteFilesSync(imagesFileNames, process.env.AWS_LAST_IMAGES_BKTNAME);
+    if (imagesFileNames.length > 0) {
+      s3DeleteFilesSync(imagesFileNames, process.env.AWS_LAST_IMAGES_BKTNAME);
+    }
     res.status(200).json({ message: "Success." });
   } catch (err) {
     return next(err);
