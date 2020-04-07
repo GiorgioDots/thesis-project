@@ -33,9 +33,7 @@ router.put(
   "/:personId",
   isAuth,
   [
-    body("name")
-      .optional({ checkFalsy: true })
-      .trim(),
+    body("name").optional({ checkFalsy: true }).trim(),
     body("doNotify")
       .optional({ checkFalsy: true })
       .not()
@@ -48,5 +46,7 @@ router.put(
 );
 
 router.delete("/:personId", isAuth, peopleController.deletePerson);
+
+router.post("/reset-counter/:personId", isAuth, peopleController.resetCounter);
 
 module.exports = router;

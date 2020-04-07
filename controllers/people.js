@@ -5,7 +5,7 @@ const { validationResult } = require("express-validator");
 
 const Person = require("../models/person");
 const User = require("../models/user");
-const { saveFileSync } = require("../utils/fs");
+const { saveFileSync, checkImageFileExtension } = require("../utils/fs");
 const {
   s3DeleteFileSync,
   s3UploadFileSync,
@@ -14,7 +14,6 @@ const {
 } = require("../utils/aws");
 
 const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
-const FILE_EXT_ALLOWED = [".png", ".jpg", ".jpeg"];
 
 exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
@@ -75,8 +74,12 @@ exports.createPerson = async (req, res, next) => {
     return next(error);
   }
   const file = req.files.image;
-  if (!FILE_EXT_ALLOWED.includes(path.extname(file.name))) {
-    console.log(path.extname(file.name));
+  if (!file) {
+    const error = new Error("No image provided.");
+    error.statusCod = 422;
+    return next(error);
+  }
+  if (!checkImageFileExtension(file.name)) {
     const error = new Error(
       "The format of the image must be png, jpg or jpeg."
     );
@@ -90,7 +93,7 @@ exports.createPerson = async (req, res, next) => {
     description = "";
   }
   const userId = req.userId;
-  const fileId = `${uuid()}.png`;
+  const fileId = `${uuid.v4()}.png`;
   const filePath = `./tmp/${fileId}`;
   try {
     await saveFileSync(file, filePath);
@@ -229,5 +232,28 @@ exports.deletePerson = async (req, res, next) => {
     res.status(200).json({ message: "Person deleted." });
   } catch (error) {
     return next(error);
+  }
+};
+
+exports.resetCounter = async (req, res, next) => {
+  const personId = req.params.personId;
+  const userId = req.userId;
+  try {
+    const person = await Person.findById(personId);
+    if (!person) {
+      const error = new Error("Person not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (person.userId.toString() !== userId.toString()) {
+      const error = new Error("Not authorized. You are not the creator.");
+      error.statusCode = 401;
+      throw error;
+    }
+    person.counter = 0;
+    await person.save();
+    res.status(200).json({ message: "Counter resetted.", person: person });
+  } catch (err) {
+    return next(err);
   }
 };

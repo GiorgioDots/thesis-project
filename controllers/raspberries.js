@@ -1,8 +1,12 @@
+const fs = require("fs");
 const request = require("request-promise-native");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const uuid = require("uuid");
 
+const { s3UploadFileSync, s3DeleteFileSync } = require("../utils/aws");
+const { checkImageFileExtension } = require("../utils/fs");
 const logger = require("../utils/logger");
 const User = require("../models/user");
 const Raspberry = require("../models/raspberry");
@@ -288,7 +292,10 @@ exports.login = async (req, res, next) => {
       error.statusCode = 422;
       throw error;
     }
-    const isEqual = await bcrypt.compare(raspiPassword, raspberry.raspiPassword);
+    const isEqual = await bcrypt.compare(
+      raspiPassword,
+      raspberry.raspiPassword
+    );
     if (!isEqual) {
       const error = new Error("raspiId or raspiPassword wrong.");
       error.statusCode = 422;
@@ -297,6 +304,76 @@ exports.login = async (req, res, next) => {
     const token = jwt.sign({ raspiId: raspiId }, process.env.JWT_SECRET);
     res.status(200).json({ message: "Logged in.", token: token });
   } catch (error) {
+    return next(error);
+  }
+};
+
+exports.updateLastImage = async (req, res, next) => {
+  const raspiId = req.raspiId;
+  if (!raspiId) {
+    const error = new Error("Not authorized.");
+    error.statusCode = 401;
+    return next(error);
+  }
+  if (!req.files) {
+    const error = new Error("No image provided.");
+    error.statusCode = 404;
+    throw (error = 422);
+    return next(error);
+  }
+  const image = req.files.image;
+  if (!image) {
+    const error = new Error("No image provided.");
+    error.statusCode = 404;
+    throw (error = 422);
+    return next(error);
+  }
+  if (!checkImageFileExtension(image.name)) {
+    const error = new Error(
+      "The format of the image must be png, jpg or jpeg."
+    );
+    error.statusCode = 422;
+    return next(error);
+  }
+  const s3FileId = `${raspiId}/${uuid.v4()}.jpg`;
+  let isCreated = false;
+  let imageToDelete;
+  try {
+    const fileUrl = await s3UploadFileSync(
+      image.data,
+      s3FileId,
+      process.env.AWS_LAST_IMAGES_BKTNAME
+    );
+    const raspberry = await Raspberry.findOne({ raspiId: raspiId });
+    if (!raspberry) {
+      const error = new Error("Raspberry not found.");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (raspberry.lastImages.length >= 10) {
+      imageToDelete = raspberry.lastImages.shift();
+    }
+    raspberry.lastImages.push({ imageUrl: fileUrl, imageId: s3FileId });
+    await raspberry.save();
+    isCreated = true;
+    if (imageToDelete) {
+      s3DeleteFileSync(
+        imageToDelete.imageId,
+        process.env.AWS_LAST_IMAGES_BKTNAME
+      );
+    }
+    request.post(`${process.env.WS_CONTROLLER_URL}/user/live-camera`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        images: raspberry.lastImages,
+        userId: raspberry.userId.toString(),
+      }),
+    });
+    res.status(200).json({ message: "Success." });
+  } catch (error) {
+    if (!isCreated) {
+      s3DeleteFileSync(s3FileId, process.env.AWS_LAST_IMAGES_BKTNAME);
+    }
     return next(error);
   }
 };

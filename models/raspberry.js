@@ -26,7 +26,18 @@ const raspberrySchema = new Schema(
     wifiSSID: String,
     wifiPassword: String,
     raspiPassword: String,
-    lastImages: [String],
+    lastImages: [
+      {
+        imageUrl: {
+          type: String,
+          required: true,
+        },
+        imageId: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
     userId: {
       type: String,
       required: true,
