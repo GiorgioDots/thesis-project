@@ -15,18 +15,26 @@ const AWS_PEOPLE_BKTNAME = process.env.AWS_PEOPLE_BKTNAME;
 
 exports.getPeople = async (req, res, next) => {
   const userId = req.userId;
-  const perPage = +req.query.perPage || 10;
-  const currentPage = req.query.page || 1;
   try {
     const totalPeople = await Person.find({
       userId: userId.toString(),
     }).countDocuments();
-    const people = await Person.find({ userId: userId.toString() })
-      .skip((currentPage - 1) * perPage)
-      .limit(perPage);
+    const people = await Person.find({ userId: userId.toString() });
+    const resPeople = people.map((p) => {
+      return {
+        _id: p.id,
+        name: p.name,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        counter: p.counter,
+        doNotify: p.doNotify,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      };
+    });
     res.status(200).json({
       message: "People retrieved successfully.",
-      people: people,
+      people: resPeople,
       totalPeople: totalPeople,
     });
   } catch (error) {
@@ -51,7 +59,16 @@ exports.getPerson = async (req, res, next) => {
     }
     res.status(200).json({
       message: "Person retrieved successfully.",
-      person: person,
+      person: {
+        _id: person.id,
+        name: person.name,
+        description: person.description,
+        imageUrl: person.imageUrl,
+        counter: person.counter,
+        doNotify: person.doNotify,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
+      },
     });
   } catch (error) {
     return next(error);
@@ -85,7 +102,7 @@ exports.createPerson = async (req, res, next) => {
     return next(error);
   }
   const name = req.body.name;
-  const doNotify = req.body.doNotify;
+  const doNotify = req.body.doNotify == "true";
   let description = req.body.description;
   if (!description) {
     description = "";
@@ -138,7 +155,16 @@ exports.createPerson = async (req, res, next) => {
     await user.save();
     res.status(201).json({
       message: "Person created successfully.",
-      person: person,
+      person: {
+        _id: person.id,
+        name: person.name,
+        description: person.description,
+        imageUrl: person.imageUrl,
+        counter: person.counter,
+        doNotify: person.doNotify,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
+      },
     });
   } catch (err) {
     await s3DeleteFileSync(fileId, AWS_PEOPLE_BKTNAME);
@@ -195,7 +221,19 @@ exports.updatePerson = async (req, res, next) => {
       resMessage = "Person updated successfully.";
       await person.save();
     }
-    res.status(200).json({ message: resMessage, person: person });
+    res.status(200).json({
+      message: resMessage,
+      person: {
+        _id: person.id,
+        name: person.name,
+        description: person.description,
+        imageUrl: person.imageUrl,
+        counter: person.counter,
+        doNotify: person.doNotify,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
+      },
+    });
   } catch (error) {
     return next(error);
   }
@@ -247,7 +285,19 @@ exports.resetCounter = async (req, res, next) => {
     }
     person.counter = 0;
     await person.save();
-    res.status(200).json({ message: "Counter resetted.", person: person });
+    res.status(200).json({
+      message: "Counter resetted.",
+      person: {
+        _id: person.id,
+        name: person.name,
+        description: person.description,
+        imageUrl: person.imageUrl,
+        counter: person.counter,
+        doNotify: person.doNotify,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
+      },
+    });
   } catch (err) {
     return next(err);
   }

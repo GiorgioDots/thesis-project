@@ -13,7 +13,7 @@ const rekognition = new AWS.Rekognition({
 });
 
 exports.createCollectionSync = () => {
-  const collectionId = uuid();
+  const collectionId = uuid.v4();
   const params = {
     CollectionId: collectionId,
   };

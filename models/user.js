@@ -4,7 +4,18 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
   {
-    telegramIds: [String],
+    telegramIds: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        telegramId: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
     name: {
       type: String,
       required: true,
@@ -39,7 +50,7 @@ const userSchema = new Schema(
     collectionId: {
       type: String,
       required: true,
-    }
+    },
   },
   { timestamps: true, versionKey: false }
 );

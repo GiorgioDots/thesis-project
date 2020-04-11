@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.get("/dashboard", isAuth, userController.getDashboard);
 
+router.get("/settings", isAuth, userController.getUserSettings);
+
 router.put(
   "/",
   [

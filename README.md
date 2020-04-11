@@ -1,7 +1,6 @@
 # User
 
 ```yaml
-_id: ObjectId, Unique
 telegramIds: Array of String
 name: String, required
 raspberries: Array of References to Raspberry
@@ -17,21 +16,22 @@ updatedAt: Date
 # Raspberry
 
 ```yaml
-_id: ObjectId, Unique
 raspiId: String, required, unique
 resolution: String, default "1280x720", options ("1920x1080", "1280x720", "640x480")
 confidence: Number, default 50, min 1, max 99
 isActive: Boolean, default true
+name: String, required
 wifiSSID: String
 wifiPassword: String
 raspiPassword: String
-lastImages: [String]
+lastImages:
+  Array of Objects:
+    imageUrl: String, required
+    imageId: String, required
 userId: ref to User, required
 createdAt: Date,
 updatedAt: Date
 ```
-
-For `lastImages`, the strings are the object id inside AWS S3, their format is like `UNIQUE_ID.jpg`.
 
 # Event
 
@@ -42,6 +42,8 @@ description: String, required
 imageName: String required
 imageUrl: String, required
 raspiId: String, required
+createdAt: Date,
+updatedAt: Date
 ```
 
 # Person
@@ -55,4 +57,24 @@ faceId: String ,required
 imageId: String, required
 counter: Number, default 0
 doNotify: Boolean, required
+createdAt: Date,
+updatedAt: Date
 ```
+
+# API Documentation
+
+## User
+
+- ### Sign Up
+
+  POST /auth/signup
+
+  Request body (JSON)
+
+  ```json
+  {
+    "email": "String, email format, required",
+    "name": "String, required",
+    "password": "String, min length 8 characters, required"
+  }
+  ```
