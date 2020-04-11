@@ -23,7 +23,6 @@ router.post(
       .withMessage(
         "Please enter if you will be notified when the person is detected."
       )
-      .isBoolean()
       .withMessage("Please enter only true or false."),
   ],
   peopleController.createPerson

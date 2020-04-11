@@ -26,18 +26,18 @@ const AWS_EVENTS_BKTNAME = process.env.AWS_EVENTS_BKTNAME;
 exports.createEvent = async (req, res, next) => {
   if (!req.files) {
     const error = new Error("No image provided.");
-    error.statusCod = 422;
+    error.statusCode = 422;
     return next(error);
   }
   if (!req.files.image) {
     const error = new Error("No image provided.");
-    error.statusCod = 422;
+    error.statusCode = 422;
     return next(error);
   }
   const image = req.files.image;
   if (!req.raspiId) {
     const error = new Error("Not authorized.");
-    error.statusCod = 401;
+    error.statusCode = 401;
     return next(error);
   }
   if (!checkImageFileExtension(image.name)) {
@@ -129,7 +129,7 @@ exports.createEvent = async (req, res, next) => {
         sendEvent(
           `Raspberry: *${raspberry.name}* says:\n\n${eventDescription}`,
           imageUrl,
-          telegramId
+          telegramId.telegramId
         );
       }
     }
@@ -152,6 +152,7 @@ exports.createEvent = async (req, res, next) => {
           imageUrl: event.imageUrl,
           raspiId: event.raspiId,
           createdAt: new Date(event.createdAt).toISOString(),
+          _id: event._id.toString(),
         },
       }),
     });
@@ -178,7 +179,7 @@ module.exports.getEvent = async (req, res, next) => {
   const eventId = req.params.eventId;
   const userId = req.userId;
   try {
-    const event = await Event.findById(eventId);
+    const event = await Event.findById(eventId).populate("person");
     if (!event) {
       const error = new Error("Event not found.");
       error.statusCode = 404;
@@ -193,7 +194,15 @@ module.exports.getEvent = async (req, res, next) => {
       message: "Success.",
       event: {
         _id: event._id.toString(),
-        person: event.person,
+        person: event.person
+          ? {
+              _id: event.person._id,
+              counter: event.person.counter,
+              name: event.person.name,
+              description: event.person.description,
+              imageUrl: event.person.imageUrl,
+            }
+          : null,
         description: event.description,
         imageUrl: event.imageUrl,
         raspiId: event.raspiId,
@@ -208,16 +217,37 @@ module.exports.getEvent = async (req, res, next) => {
 module.exports.getEvents = async (req, res, next) => {
   const userId = req.userId;
   const perPage = +req.query.perPage || 10;
-  const currentPage = req.query.page || 1;
+  let currentPage = req.query.page || 1;
   try {
     const totalEvents = await Event.find({ userId: userId }).countDocuments();
+    /*CHECKS IF THE CURRENT PAGE EXISTS*/
+    if (
+      perPage * currentPage >
+      totalEvents + (perPage - (totalEvents % perPage))
+    ) {
+      const error = new Error("This page does not exists.");
+      error.statusCode = 404;
+      throw error;
+    }
     const loadedEvents = await Event.find({ userId: userId })
       .skip((currentPage - 1) * perPage)
-      .limit(perPage);
+      .limit(perPage)
+      .sort({
+        createdAt: -1,
+      })
+      .populate("person");
     const events = loadedEvents.map((event) => {
       return {
         _id: event._id.toString(),
-        person: event.person,
+        person: event.person
+          ? {
+              _id: event.person._id,
+              counter: event.person.counter,
+              name: event.person.name,
+              description: event.person.description,
+              imageUrl: event.person.imageUrl,
+            }
+          : null,
         description: event.description,
         imageUrl: event.imageUrl,
         raspiId: event.raspiId,

@@ -32,9 +32,9 @@ exports.updateUser = async (req, res, next) => {
     }
     if (typeof telegramIds === "object") {
       telegramIds.forEach((id, index) => {
-        if (typeof id !== "string") {
+        if (typeof id.name !== "string" && typeof id.telegramId !== "string") {
           const error = new Error(
-            `TelegramID of index ${index} is not a string.`
+            `TelegramID of index ${index} must contain a name and a telegram id of type string.`
           );
           error.statusCode = 422;
           throw error;
@@ -183,7 +183,7 @@ exports.getDashboard = async (req, res, next) => {
       .limit(5);
     const peopleMoreDetected = people.map((p) => {
       return {
-        counter: 5,
+        counter: p.counter,
         _id: p._id.toString(),
         name: p.name,
       };
@@ -205,7 +205,17 @@ exports.getDashboard = async (req, res, next) => {
       return {
         raspiId: r.raspiId,
         name: r.name,
-        lastImages: r.lastImages.map((i) => i.imageUrl),
+        lastImages: r.lastImages.sort((a, b) => {
+          const dA = new Date(a.timestamp).getTime();
+          const dB = new Date(b.timestamp).getTime();
+          if (dA > dB) {
+            return -1;
+          }
+          if (dA < dB) {
+            return 1;
+          }
+          return 0;
+        }),
       };
     });
     res.status(200).json({
@@ -216,5 +226,25 @@ exports.getDashboard = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+exports.getUserSettings = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId.toString());
+    if (!user) {
+      const error = new Error("Cannot find the user.");
+      error.statusCode = 404;
+      throw error;
+    }
+    const responseUser = {
+      id: user._id.toString(),
+      telegramIds: user.telegramIds,
+      email: user.email,
+      name: user.name,
+    };
+    res.status(200).json(responseUser);
+  } catch (err) {
+    return next(err);
   }
 };

@@ -172,13 +172,13 @@ exports.updateRaspberry = async (req, res, next) => {
         isModified = true;
       }
     }
-    if (typeof wifiPassword === "string") {
+    if (typeof wifiPassword === "string" || typeof wifiSSID !== 'undefined') {
       if (raspberry.wifiPassword !== wifiPassword) {
         raspberry.wifiPassword = wifiPassword;
         isModified = true;
       }
     }
-    if (wifiSSID) {
+    if (typeof wifiSSID === "string" || typeof wifiSSID !== 'undefined') {
       if (raspberry.wifiSSID !== wifiSSID) {
         raspberry.wifiSSID = wifiSSID;
         isModified = true;
@@ -377,7 +377,11 @@ exports.updateLastImage = async (req, res, next) => {
     if (raspberry.lastImages.length >= 10) {
       imageToDelete = raspberry.lastImages.shift();
     }
-    raspberry.lastImages.push({ imageUrl: fileUrl, imageId: s3FileId });
+    raspberry.lastImages.push({
+      imageUrl: fileUrl,
+      imageId: s3FileId,
+      timestamp: new Date().toISOString(),
+    });
     await raspberry.save();
     isCreated = true;
     if (imageToDelete) {
@@ -389,6 +393,7 @@ exports.updateLastImage = async (req, res, next) => {
     request.post(`${process.env.WS_CONTROLLER_URL}/user/live-camera`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        raspiId: raspiId,
         images: raspberry.lastImages,
         userId: raspberry.userId.toString(),
       }),
