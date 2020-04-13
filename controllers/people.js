@@ -1,3 +1,4 @@
+const path = require("path");
 const uuid = require("uuid");
 const { validationResult } = require("express-validator");
 
@@ -96,7 +97,9 @@ exports.createPerson = async (req, res, next) => {
   }
   if (!checkImageFileExtension(image.name)) {
     const error = new Error(
-      "The format of the image must be png, jpg or jpeg."
+      `The format of the image must be png, jpg or jpeg. The file sent is ${path.extname(
+        image.name
+      )}`
     );
     error.statusCode = 422;
     return next(error);
