@@ -42,7 +42,7 @@ exports.createEvent = async (req, res, next) => {
   }
   if (!checkImageFileExtension(image.mimetype)) {
     const error = new Error(
-      "The format of the image must be png, jpg or jpeg."
+      `The format of the image must be png, jpg or jpeg; you sent ${image.mimetype}`
     );
     error.statusCode = 422;
     return next(error);
