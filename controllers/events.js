@@ -40,7 +40,7 @@ exports.createEvent = async (req, res, next) => {
     error.statusCode = 401;
     return next(error);
   }
-  if (!checkImageFileExtension(image.name)) {
+  if (!checkImageFileExtension(image.mimetype)) {
     const error = new Error(
       "The format of the image must be png, jpg or jpeg."
     );
