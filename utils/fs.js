@@ -1,9 +1,7 @@
-const path = require("path");
+const FILE_EXT_ALLOWED = ['image/png', 'image/jpg', 'image/jpeg'];
 
-const FILE_EXT_ALLOWED = [".png", ".jpg", ".jpeg"];
-
-exports.checkImageFileExtension = (fileName) => {
-  if (!FILE_EXT_ALLOWED.includes(path.extname(fileName))) {
+exports.checkImageFileExtension = (mimetype) => {
+  if (!FILE_EXT_ALLOWED.includes(mimetype)) {
     return false;
   } else {
     return true;
