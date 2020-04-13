@@ -106,10 +106,12 @@ exports.getRaspberry = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    if (raspberry.userId !== userId.toString()) {
-      const error = new Error("You are not the creator of this raspberry.");
-      error.statusCode = 401;
-      throw error;
+    if(req.userId){
+      if (raspberry.userId !== userId.toString()) {
+        const error = new Error("You are not the creator of this raspberry.");
+        error.statusCode = 401;
+        throw error;
+      }
     }
     res.status(200).json({
       message: "Success.",
