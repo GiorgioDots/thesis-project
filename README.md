@@ -63,18 +63,8 @@ updatedAt: Date
 
 # API Documentation
 
-## User
+The API details are described in [this link](https://web.postman.co/collections/8053108-ba6bd55d-d16d-4951-bc94-9211ddc38cb6?version=latest&workspace=13e0db06-c512-455f-88e3-65a367cd909e).
 
-- ### Sign Up
+# Project presentation
 
-  POST /auth/signup
-
-  Request body (JSON)
-
-  ```json
-  {
-    "email": "String, email format, required",
-    "name": "String, required",
-    "password": "String, min length 8 characters, required"
-  }
-  ```
+Click [this link](https://drive.google.com/open?id=13OOhCa-MJAkcGi3AeWAmfjFU1vEm2DTlZSez3QXFmuk) to view the project presentation.
