@@ -1,7 +1,10 @@
 # User
 
 ```yaml
-telegramIds: Array of String
+telegramIds:
+  Array of Objects:
+    name: String, required
+    telegramId: String, required
 name: String, required
 raspberries: Array of References to Raspberry
 email: String, required, unique
@@ -28,6 +31,7 @@ lastImages:
   Array of Objects:
     imageUrl: String, required
     imageId: String, required
+    timestamp: String, required
 userId: ref to User, required
 createdAt: Date,
 updatedAt: Date
